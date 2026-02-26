@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Simonetti</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <img src="favicon.ico.jpg" width="80" alt="Simonetti">
+        <h2>Acesso Assistência</h2>
+        <input type="email" id="email" placeholder="E-mail">
+        <input type="password" id="password" placeholder="Senha">
+        <button id="btnLogin">Entrar</button>
+        <p id="error" style="color:red;"></p>
+    </div>
+
+    <script type="module">
+        import { auth, db } from "./js/firebase-config.js";
+        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        document.getElementById("btnLogin").onclick = async () => {
+            const email = document.getElementById("email").value;
+            const pass = document.getElementById("password").value;
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+                
+                if (userDoc.exists() && userDoc.data().isFirstLogin) {
+                    window.location.href = "first_login.html";
+                } else {
+                    window.location.href = "dashboard.html";
+                }
+            } catch (e) {
+                document.getElementById("error").innerText = "Usuário ou senha inválidos.";
+            }
+        };
+    </script>
+</body>
+</html>

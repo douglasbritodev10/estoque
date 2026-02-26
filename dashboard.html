@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Móveis Simonetti</title>
+    <style>
+        :root {
+            --primary: #004a99;
+            --glass-bg: rgba(255, 255, 255, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --text-color: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #002d5f 0%, #004a99 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .user-greeting {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            background: rgba(220, 53, 69, 0.8);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-logout:hover { background: #dc3545; }
+
+        /* Header Logo Section */
+        .header-section {
+            text-align: center;
+            margin: 50px 0;
+        }
+
+        .logo-ms {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 0;
+            letter-spacing: -2px;
+            text-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .title-main { font-size: 2.2rem; margin: 0; }
+        .subtitle { font-size: 1.1rem; opacity: 0.8; font-style: italic; }
+
+        /* Glass Cards Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+
+        .card-icon { font-size: 3rem; margin-bottom: 15px; }
+        .card-title { font-size: 1.4rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="user-greeting" id="userGreeting">Olá, Carregando...</div>
+        <button class="btn-logout" id="btnLogout">Sair do Sistema</button>
+    </div>
+
+    <div class="header-section">
+        <div class="logo-ms">MS</div>
+        <h1 class="title-main">Móveis Simonetti</h1>
+        <p class="subtitle">Gestão de Estoque e Pulmão de Assistência</p>
+    </div>
+
+    <div class="container">
+        <a href="produtos.html" class="glass-card">
+            <div class="card-icon">📦</div>
+            <div class="card-title">Gestão de Estoque / Pulmão</div>
+        </a>
+
+        <a href="fornecedores.html" class="glass-card">
+            <div class="card-icon">🏭</div>
+            <div class="card-title">Cadastrar Fornecedores</div>
+        </a>
+
+        <a href="historico.html" class="glass-card">
+            <div class="card-icon">📜</div>
+            <div class="card-title">Histórico de Giro</div>
+        </a>
+    </div>
+
+    <script type="module">
+        import { auth } from "./js/firebase-config.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+        // Saudaçao Dinâmica
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const userName = user.email.split('@')[0];
+                document.getElementById("userGreeting").innerText = `Olá, ${userName.toUpperCase()}`;
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        document.getElementById("btnLogout").onclick = () => {
+            auth.signOut().then(() => window.location.href = "index.html");
+        };
+    </script>
+</body>
+</html>
