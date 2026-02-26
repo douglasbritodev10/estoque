@@ -1,17 +1,18 @@
 import { db, auth } from "./firebase-config.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { 
-    collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp 
+    collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 onAuthStateChanged(auth, user => {
     if (user) {
-        document.getElementById("labelUser").innerText = `Olá, ${user.email.split('@')[0].toUpperCase()}`;
+        document.getElementById("labelUser").innerText = `Olá, ${user.email.split('@')[0]}`;
         loadAll();
     } else { window.location.href = "index.html"; }
 });
 
 async function loadAll() {
+    // Busca dados para compor as descrições
     const fornecedoresSnap = await getDocs(collection(db, "fornecedores"));
     const fornMap = {};
     fornecedoresSnap.forEach(d => fornMap[d.id] = d.data().nome);
@@ -20,6 +21,7 @@ async function loadAll() {
     const prodMap = {};
     produtosSnap.forEach(d => prodMap[d.id] = { nome: d.data().nome, forn: fornMap[d.data().fornecedorId] });
 
+    // Renderiza as duas áreas
     await renderEnderecos(prodMap);
     await renderPendentes(prodMap);
 }
@@ -28,6 +30,7 @@ async function renderEnderecos(prodMap) {
     const grid = document.getElementById("gridEnderecos");
     grid.innerHTML = "";
     
+    // Busca endereços e volumes
     const eSnap = await getDocs(query(collection(db, "enderecos"), orderBy("rua"), orderBy("modulo")));
     const vSnap = await getDocs(collection(db, "volumes"));
     const volumes = vSnap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -35,20 +38,20 @@ async function renderEnderecos(prodMap) {
     eSnap.forEach(de => {
         const end = de.data();
         const endId = de.id;
-        const volumesNoLocal = volumes.filter(v => v.enderecoId === endId);
+        const volumesNoLocal = volumes.filter(v => v.enderecoId === endId && v.quantidade > 0);
 
         const card = document.createElement("div");
         card.className = "card-endereco";
         card.innerHTML = `
             <div class="card-end-header">
-                <span>RUA ${end.rua} - M${end.modulo} - N${end.nivel}</span>
+                <span>RUA ${end.rua} | M${end.modulo} | N${end.nivel}</span>
                 <button onclick="window.deletarEndereco('${endId}')" style="background:none; border:none; color:white; cursor:pointer;">✕</button>
             </div>
-            <div class="card-end-body" id="body-${endId}">
+            <div class="card-end-body">
                 ${volumesNoLocal.map(v => `
                     <div class="vol-item">
                         <span><strong>${v.quantidade}x</strong> ${v.descricao}</span>
-                        <button class="btn-action" style="background:var(--gray)" onclick="window.desvincular('${v.id}')">Sair</button>
+                        <button class="btn-action" style="background:var(--gray)" onclick="window.desvincular('${v.id}')">Tirar</button>
                     </div>
                 `).join('')}
                 <button class="btn-action" style="background:var(--success); width:100%; margin-top:10px" onclick="window.vincularAqui('${endId}')">+ Vincular Volume</button>
@@ -66,68 +69,81 @@ async function renderPendentes(prodMap) {
     
     vSnap.forEach(dv => {
         const vol = dv.data();
-        // Se não tem enderecoId ou está vazio, é pendente
-        if (!vol.enderecoId) {
-            const pInfo = prodMap[vol.produtoId] || { nome: "Produto Excluído", forn: "---" };
+        // Pendente se: quantidade > 0 E (não tem enderecoId OU enderecoId está vazio)
+        if (vol.quantidade > 0 && (!vol.enderecoId || vol.enderecoId === "")) {
+            const pInfo = prodMap[vol.produtoId] || { nome: "Produto não encontrado", forn: "---" };
             const div = document.createElement("div");
             div.className = "card-pendente";
             div.innerHTML = `
                 <div style="font-weight:bold; color:var(--primary)">${pInfo.forn}</div>
-                <div>${pInfo.nome}</div>
-                <div style="color:var(--secondary)">Vol: ${vol.descricao}</div>
-                <div style="margin-top:5px; font-weight:bold">Qtd: ${vol.quantidade}</div>
+                <div style="margin: 3px 0"><strong>Prod:</strong> ${pInfo.nome}</div>
+                <div><strong>Vol:</strong> ${vol.descricao}</div>
+                <div style="margin-top:5px; font-weight:bold; color:var(--danger)">Estoque: ${vol.quantidade}</div>
             `;
             lista.appendChild(div);
         }
     });
 }
 
-// AÇÕES
+// Ações do Usuário
 
 document.getElementById("btnCriarEndereco").onclick = async () => {
     const rua = document.getElementById("addRua").value.toUpperCase();
     const modulo = document.getElementById("addModulo").value;
     const nivel = document.getElementById("addNivel").value;
 
-    if(!rua || !modulo) return alert("Preencha Rua e Módulo!");
+    if(!rua || !modulo) return alert("Rua e Módulo são obrigatórios!");
 
-    await addDoc(collection(db, "enderecos"), { rua, modulo, nivel, dataCriacao: serverTimestamp() });
-    location.reload();
+    // No primeiro clique, o Firebase cria a coleção 'enderecos' automaticamente
+    await addDoc(collection(db, "enderecos"), { 
+        rua, modulo, nivel, 
+        dataCriacao: serverTimestamp() 
+    });
+    
+    document.getElementById("addRua").value = "";
+    document.getElementById("addModulo").value = "";
+    document.getElementById("addNivel").value = "";
+    loadAll();
 };
 
 window.vincularAqui = async (endId) => {
     const vSnap = await getDocs(collection(db, "volumes"));
-    let listaTxt = "Digite o número do volume para endereçar:\n\n";
+    let listaTxt = "Escolha o número do volume para colocar neste endereço:\n\n";
     const disponiveis = [];
 
     let i = 0;
     vSnap.forEach(dv => {
-        if (!dv.data().enderecoId) {
+        const data = dv.data();
+        if (data.quantidade > 0 && (!data.enderecoId || data.enderecoId === "")) {
             disponiveis.push(dv.id);
-            listaTxt += `${i} - ${dv.data().descricao} (${dv.data().quantidade} un)\n`;
+            listaTxt += `${i} - ${data.descricao} (${data.quantidade} un)\n`;
             i++;
         }
     });
 
-    if (disponiveis.length === 0) return alert("Não há volumes pendentes!");
+    if (disponiveis.length === 0) return alert("Não há volumes com estoque para endereçar!");
 
     const escolha = prompt(listaTxt);
     if (escolha !== null && disponiveis[escolha]) {
-        await updateDoc(doc(db, "volumes", disponiveis[escolha]), { enderecoId: endId });
+        await updateDoc(doc(db, "volumes", disponiveis[escolha]), { 
+            enderecoId: endId 
+        });
         loadAll();
     }
 };
 
 window.desvincular = async (volId) => {
-    if(confirm("Remover este volume deste endereço? Ele voltará para a lista de pendentes.")){
+    if(confirm("Deseja tirar este volume deste endereço? Ele voltará para a lista de pendentes.")){
         await updateDoc(doc(db, "volumes", volId), { enderecoId: "" });
         loadAll();
     }
 };
 
 window.deletarEndereco = async (id) => {
-    if(confirm("Excluir este endereço? Volumes nele ficarão sem endereço.")){
+    if(confirm("Excluir este local? Os volumes que estavam nele ficarão como 'Não Endereçados'.")){
         await deleteDoc(doc(db, "enderecos", id));
         loadAll();
     }
 };
+
+window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
