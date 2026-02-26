@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Móveis Simonetti - Endereçamento</title>
+  <style>
+    :root {
+      --primary: #004a99;
+      --secondary: #2c3e50;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #f39c12;
+      --gray: #6c757d;
+      --light: #f8f9fa;
+      --border-color: #dddddd;
+    }
+
+    body { background-color: #f4f7f6; margin: 0; font-family: 'Segoe UI', sans-serif; }
+
+    .top-nav {
+      background: var(--primary); color: white; padding: 10px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .btn-back { 
+      background: rgba(255,255,255,0.2); border: none; color: white; 
+      padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none;
+    }
+
+    .main-layout { display: grid; grid-template-columns: 350px 1fr; gap: 20px; padding: 20px; }
+
+    /* Coluna de Pendências */
+    .panel-pendentes { background: white; border-radius: 8px; border: 1px solid var(--border-color); height: 85vh; display: flex; flex-direction: column; }
+    .panel-header { background: var(--danger); color: white; padding: 10px; font-weight: bold; border-radius: 8px 8px 0 0; }
+    .list-pendentes { overflow-y: auto; flex-grow: 1; padding: 10px; }
+    .card-pendente { 
+        background: var(--light); border: 1px solid #eee; padding: 8px; margin-bottom: 8px; 
+        border-radius: 4px; font-size: 12px; cursor: move;
+    }
+
+    /* Área de Endereços */
+    .cadastro-bar { background: #eee; padding: 15px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px; }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-group label { font-size: 11px; font-weight: bold; }
+    .field-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+
+    .grid-enderecos {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;
+    }
+
+    .card-endereco { background: white; border-radius: 8px; border: 1px solid var(--border-color); min-height: 150px; }
+    .card-end-header { 
+        background: var(--secondary); color: white; padding: 8px 12px; 
+        display: flex; justify-content: space-between; align-items: center; font-size: 14px;
+    }
+    .card-end-body { padding: 10px; font-size: 12px; }
+    
+    .vol-item { 
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 5px 0; border-bottom: 1px dashed #ddd;
+    }
+
+    .btn-action { padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; color: white; font-weight: bold; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+  <div class="top-nav">
+    <div>
+        <a href="produtos.html" class="btn-back">← Voltar para Produtos</a>
+        <span id="labelUser" style="margin-left: 15px;">Carregando...</span>
+    </div>
+    <div style="font-weight: bold;">MAPA DE ENDEREÇAMENTO</div>
+    <div style="width: 100px;"></div>
+  </div>
+
+  <div class="main-layout">
+    <div class="panel-pendentes">
+      <div class="panel-header">VOLUMES NÃO ENDEREÇADOS</div>
+      <div id="listaPendentes" class="list-pendentes">
+        </div>
+    </div>
+
+    <div>
+      <div class="cadastro-bar">
+        <div class="field-group">
+          <label>RUA:</label>
+          <input type="text" id="addRua" placeholder="Ex: A" style="width: 60px;">
+        </div>
+        <div class="field-group">
+          <label>MÓDULO/PRAT.:</label>
+          <input type="text" id="addModulo" placeholder="Ex: 05" style="width: 80px;">
+        </div>
+        <div class="field-group">
+          <label>NÍVEL:</label>
+          <input type="text" id="addNivel" placeholder="Ex: 01" style="width: 60px;">
+        </div>
+        <button class="btn-action" id="btnCriarEndereco" style="background:var(--primary); height: 35px;">CRIAR ENDEREÇO</button>
+      </div>
+
+      <div class="grid-enderecos" id="gridEnderecos">
+        </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/endereçamento.js"></script>
+</body>
+</html>
