@@ -30,7 +30,6 @@ async function loadAll() {
 
 async function syncUI() {
     try {
-        // Tenta buscar ordenado. Se o índice não estiver pronto, ele cai no 'catch' e busca sem ordem
         let eSnap;
         try {
             const qEnderecos = query(collection(db, "enderecos"), orderBy("rua"), orderBy("modulo"));
@@ -57,12 +56,12 @@ function renderPendentes() {
         if (v.quantidade > 0 && (!v.enderecoId || v.enderecoId === "")) {
             const p = dbState.produtos[v.produtoId] || { nome: "Produto Excluído", forn: "---" };
             lista.innerHTML += `
-                <div class="card-pendente" style="border-left: 5px solid var(--danger); padding: 10px; background: white; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                    <div style="font-size: 10px; color: var(--primary); font-weight: bold; text-transform: uppercase;">${p.forn}</div>
+                <div class="card-pendente" style="border-left: 5px solid #dc3545; padding: 10px; background: white; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 10px; color: #004a99; font-weight: bold; text-transform: uppercase;">${p.forn}</div>
                     <div style="font-size: 13px; font-weight: bold; margin: 3px 0;">${v.descricao}</div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span>Qtd: <b>${v.quantidade}</b></span>
-                        <button onclick="window.abrirModalMover('${v.id}')" style="background: var(--success); color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 11px;">GUARDAR</button>
+                        <button onclick="window.abrirModalMover('${v.id}')" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 11px;">GUARDAR</button>
                     </div>
                 </div>`;
         }
@@ -76,7 +75,7 @@ function renderEnderecos() {
         const volsNesteLocal = dbState.volumes.filter(v => v.enderecoId === end.id && v.quantidade > 0);
         grid.innerHTML += `
             <div style="background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                <div style="background: var(--secondary); color: white; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                <div style="background: #002d5f; color: white; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
                     <span>RUA ${end.rua} - MOD ${end.modulo} ${end.nivel ? '- NV '+end.nivel : ''}</span>
                     <i class="fas fa-trash" onclick="window.deletarLocal('${end.id}')" style="cursor:pointer; font-size: 12px; opacity: 0.7;"></i>
                 </div>
@@ -86,7 +85,7 @@ function renderEnderecos() {
                             <div style="font-size: 12px;"><b>${v.quantidade}x</b> ${v.descricao}</div>
                             <div style="display: flex; gap: 5px; margin-top: 5px;">
                                 <button onclick="window.abrirModalMover('${v.id}')" style="flex:1; font-size: 10px; padding: 3px; cursor:pointer;">MOVER</button>
-                                <button onclick="window.darSaida('${v.id}', '${v.descricao}')" style="flex:1; font-size: 10px; padding: 3px; color: white; background: var(--danger); border:none; border-radius:3px;">SAÍDA</button>
+                                <button onclick="window.darSaida('${v.id}', '${v.descricao}')" style="flex:1; font-size: 10px; padding: 3px; color: white; background: #dc3545; border:none; border-radius:3px;">SAÍDA</button>
                             </div>
                         </div>`).join('') || '<div style="color: #ccc; font-size: 11px; text-align: center; padding: 10px;">Vazio</div>'}
                 </div>
@@ -94,12 +93,18 @@ function renderEnderecos() {
     });
 }
 
-// --- MODAL E MOVIMENTAÇÃO ---
+// --- MODAL E MOVIMENTAÇÃO (CORRIGIDO) ---
 window.abrirModalMover = (volId) => {
     const vol = dbState.volumes.find(v => v.id === volId);
+    if (!vol) return;
+
     const modal = document.getElementById("modalMaster");
     const body = document.getElementById("modalBody");
-    let options = dbState.enderecos.map(e => `<option value="${e.id}">RUA ${e.rua} - MOD ${e.modulo} ${e.nivel ? '(Nív '+e.nivel+')' : ''}</option>`).join('');
+    const btnConfirmar = document.getElementById("btnConfirmar");
+
+    let options = dbState.enderecos.map(e => 
+        `<option value="${e.id}">RUA ${e.rua} - MOD ${e.modulo} ${e.nivel ? '(Nív '+e.nivel+')' : ''}</option>`
+    ).join('');
 
     body.innerHTML = `
         <p style="font-size:13px;">Mover <b>${vol.descricao}</b> para:</p>
@@ -107,50 +112,98 @@ window.abrirModalMover = (volId) => {
             <option value="">Selecione o local...</option>
             ${options}
         </select>
-        <label style="font-size:12px; font-weight:bold;">Quantidade:</label>
+        <label style="font-size:12px; font-weight:bold;">Quantidade (Máx: ${vol.quantidade}):</label>
         <input type="number" id="qtdMover" value="${vol.quantidade}" max="${vol.quantidade}" min="1" style="width: 93%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">`;
 
     modal.style.display = "flex";
-    document.getElementById("btnConfirmar").onclick = async () => {
+
+    // Limpa o clique anterior para evitar execuções duplicadas
+    btnConfirmar.onclick = null; 
+    btnConfirmar.onclick = async () => {
         const destId = document.getElementById("selectDestino").value;
         const qtd = parseInt(document.getElementById("qtdMover").value);
-        if (!destId || qtd <= 0 || qtd > vol.quantidade) return alert("Verifique os dados!");
+        
+        if (!destId || isNaN(qtd) || qtd <= 0 || qtd > vol.quantidade) {
+            return alert("Verifique os dados!");
+        }
+
+        btnConfirmar.disabled = true;
+        btnConfirmar.innerText = "PROCESSANDO...";
+        
         await processarTransferencia(volId, destId, qtd);
+        
+        btnConfirmar.disabled = false;
+        btnConfirmar.innerText = "CONFIRMAR";
     };
 };
 
 async function processarTransferencia(volIdOrigem, endIdDestino, qtd) {
-    const volOrigem = dbState.volumes.find(v => v.id === volIdOrigem);
-    const endDestino = dbState.enderecos.find(e => e.id === endIdDestino);
-    const volNoDestino = dbState.volumes.find(v => v.enderecoId === endIdDestino && v.produtoId === volOrigem.produtoId && v.descricao === volOrigem.descricao);
+    try {
+        const volOrigem = dbState.volumes.find(v => v.id === volIdOrigem);
+        const endDestino = dbState.enderecos.find(e => e.id === endIdDestino);
+        const volNoDestino = dbState.volumes.find(v => 
+            v.enderecoId === endIdDestino && 
+            v.produtoId === volOrigem.produtoId && 
+            v.descricao === volOrigem.descricao
+        );
 
-    if (qtd === volOrigem.quantidade) {
-        if (volNoDestino) {
-            await updateDoc(doc(db, "volumes", volNoDestino.id), { quantidade: increment(qtd) });
-            await deleteDoc(doc(db, "volumes", volIdOrigem));
-        } else {
-            await updateDoc(doc(db, "volumes", volIdOrigem), { enderecoId: endIdDestino });
-        }
-    } else {
-        await updateDoc(doc(db, "volumes", volIdOrigem), { quantidade: increment(-qtd) });
-        if (volNoDestino) {
-            await updateDoc(doc(db, "volumes", volNoDestino.id), { quantidade: increment(qtd) });
-        } else {
-            await addDoc(collection(db, "volumes"), {
-                produtoId: volOrigem.produtoId, descricao: volOrigem.descricao,
-                quantidade: qtd, enderecoId: endIdDestino, ultimaMovimentacao: serverTimestamp()
+        // Se mover a quantidade total
+        if (qtd === volOrigem.quantidade) {
+            if (volNoDestino) {
+                await updateDoc(doc(db, "volumes", volNoDestino.id), { 
+                    quantidade: increment(qtd),
+                    ultimaMovimentacao: serverTimestamp() 
+                });
+                await deleteDoc(doc(db, "volumes", volIdOrigem));
+            } else {
+                await updateDoc(doc(db, "volumes", volIdOrigem), { 
+                    enderecoId: endIdDestino,
+                    ultimaMovimentacao: serverTimestamp()
+                });
+            }
+        } 
+        // Se mover apenas parte
+        else {
+            await updateDoc(doc(db, "volumes", volIdOrigem), { 
+                quantidade: increment(-qtd),
+                ultimaMovimentacao: serverTimestamp()
             });
+
+            if (volNoDestino) {
+                await updateDoc(doc(db, "volumes", volNoDestino.id), { 
+                    quantidade: increment(qtd),
+                    ultimaMovimentacao: serverTimestamp()
+                });
+            } else {
+                await addDoc(collection(db, "volumes"), {
+                    produtoId: volOrigem.produtoId,
+                    descricao: volOrigem.descricao,
+                    quantidade: qtd,
+                    enderecoId: endIdDestino,
+                    ultimaMovimentacao: serverTimestamp()
+                });
+            }
         }
+
+        // Define o tipo de histórico (Guardar ou Logística)
+        const tipoAcao = (!volOrigem.enderecoId || volOrigem.enderecoId === "") ? "Entrada/Guardar" : "Logística";
+
+        await addDoc(collection(db, "movimentacoes"), {
+            produto: volOrigem.descricao,
+            tipo: tipoAcao,
+            quantidade: qtd,
+            usuario: auth.currentUser.email,
+            data: serverTimestamp(),
+            detalhe: `Para RUA ${endDestino.rua} MOD ${endDestino.modulo}`
+        });
+
+        window.fecharModal();
+        await syncUI();
+
+    } catch (e) {
+        console.error("Erro na transferência:", e);
+        alert("Erro ao movimentar.");
     }
-
-    await addDoc(collection(db, "movimentacoes"), {
-        produto: volOrigem.descricao, tipo: "Logística", quantidade: qtd,
-        usuario: auth.currentUser.email, data: serverTimestamp(),
-        detalhe: `Para RUA ${endDestino.rua} MOD ${endDestino.modulo}`
-    });
-
-    window.fecharModal();
-    syncUI();
 }
 
 document.getElementById("btnCriarEndereco").onclick = async () => {
