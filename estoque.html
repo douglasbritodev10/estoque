@@ -3,72 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Móveis Simonetti - Gestão de Estoque</title>
+  <title>Móveis Simonetti - Gestão de Estoque Profissional</title>
   <style>
     :root {
       --primary: #004a99;
       --secondary: #2c3e50;
       --success: #28a745;
       --danger: #dc3545;
-      --gray: #6c757d;
+      --warning: #f39c12;
       --light: #f8f9fa;
-      --border-color: #dddddd;
+      --border-color: #dee2e6;
+      --shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    body { background-color: #f4f7f6; margin: 0; font-family: 'Segoe UI', sans-serif; }
-    .top-nav { background: var(--primary); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
-    .btn-nav { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 15px; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; }
-    .main-layout { display: grid; grid-template-columns: 350px 1fr; gap: 20px; padding: 20px; }
-    .panel-pendentes { background: white; border-radius: 8px; border: 1px solid var(--border-color); height: 82vh; display: flex; flex-direction: column; }
-    .panel-header { background: var(--danger); color: white; padding: 12px; font-weight: bold; border-radius: 8px 8px 0 0; text-align: center; }
-    .list-pendentes { overflow-y: auto; flex-grow: 1; padding: 10px; }
-    .card-pendente { background: var(--light); border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; font-size: 12px; border-left: 4px solid var(--danger); }
-    .cadastro-bar { background: #eee; padding: 15px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px; border: 1px solid #ccc; }
-    .field-group { display: flex; flex-direction: column; gap: 4px; }
-    .field-group label { font-size: 11px; font-weight: bold; }
-    .field-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-    .grid-enderecos { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-    .card-endereco { background: white; border-radius: 8px; border: 1px solid var(--border-color); min-height: 150px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .card-end-header { background: var(--secondary); color: white; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; }
-    .card-end-body { padding: 12px; font-size: 12px; }
-    .vol-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #ddd; }
-    .btn-action { padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; color: white; font-weight: bold; font-size: 11px; }
+
+    body { background-color: #f1f3f5; margin: 0; font-family: 'Inter', 'Segoe UI', sans-serif; color: #333; }
+
+    /* Nav Bar */
+    .top-nav {
+      background: var(--primary); color: white; padding: 12px 25px;
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: var(--shadow);
+    }
+    .btn-nav { 
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; 
+      padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 13px; font-weight: 600;
+      transition: 0.3s;
+    }
+    .btn-nav:hover { background: rgba(255,255,255,0.25); }
+
+    /* Layout */
+    .main-layout { display: grid; grid-template-columns: 380px 1fr; gap: 25px; padding: 25px; height: calc(100vh - 70px); box-sizing: border-box; }
+
+    /* Painel Lateral */
+    .panel-pendentes { background: white; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); }
+    .panel-header { background: var(--danger); color: white; padding: 15px; font-weight: 700; text-align: center; letter-spacing: 0.5px; }
+    .list-pendentes { overflow-y: auto; flex-grow: 1; padding: 15px; background: #fffcfc; }
+    
+    .card-pendente { 
+        background: white; border: 1px solid #eee; padding: 12px; margin-bottom: 12px; 
+        border-radius: 8px; border-left: 5px solid var(--danger);
+        transition: transform 0.2s; position: relative;
+    }
+    .card-pendente:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+
+    /* Conteúdo Principal */
+    .cadastro-bar { background: white; padding: 20px; border-radius: 12px; display: flex; gap: 15px; align-items: flex-end; margin-bottom: 25px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+    .field-group { display: flex; flex-direction: column; gap: 6px; }
+    .field-group label { font-size: 12px; font-weight: 700; color: var(--secondary); text-transform: uppercase; }
+    .field-group input { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; }
+    .field-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,74,153,0.1); }
+
+    /* Grid de Endereços */
+    .grid-enderecos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; align-content: start; }
+    .card-endereco { background: white; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+    .card-end-header { 
+        background: var(--secondary); color: white; padding: 12px 15px; 
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .card-end-body { padding: 15px; flex-grow: 1; }
+    
+    .vol-item { 
+        display: flex; flex-direction: column; gap: 4px;
+        padding: 10px; border-bottom: 1px solid #f0f0f0; background: #fafafa; border-radius: 6px; margin-bottom: 8px;
+    }
+    .vol-item-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px; }
+
+    /* Modais Profissionais */
+    .modal-overlay { 
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000;
+        backdrop-filter: blur(4px);
+    }
+    .modal-content { 
+        background: white; padding: 25px; border-radius: 12px; width: 450px; 
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+    }
+    .modal-header { font-size: 18px; font-weight: 800; margin-bottom: 20px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; color: var(--primary); }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+
+    .btn-action { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 600; font-size: 12px; transition: 0.2s; }
+    .btn-action:hover { filter: brightness(0.9); }
   </style>
 </head>
 <body>
+
   <div class="top-nav">
     <div>
         <a href="produtos.html" class="btn-nav">← VOLTAR</a>
-        <span id="labelUser" style="margin-left: 15px; font-weight: bold; text-transform: uppercase;">Olá...</span>
+        <span id="labelUser" style="margin-left: 20px; font-weight: 700; text-transform: uppercase; font-size: 14px;">Olá, USUÁRIO</span>
     </div>
-    <div style="font-weight: bold; font-size: 18px;">MAPA DE ENDEREÇAMENTO</div>
-    <button onclick="window.logout()" class="btn-nav" style="background: var(--danger);">SAIR</button>
+    <div style="font-weight: 800; font-size: 20px; letter-spacing: 1px;">SISTEMA DE ENDEREÇAMENTO</div>
+    <button onclick="window.logout()" class="btn-nav" style="background: var(--danger);">SAIR DO SISTEMA</button>
   </div>
 
   <div class="main-layout">
     <div class="panel-pendentes">
-      <div class="panel-header">VOLUMES NÃO ENDEREÇADOS</div>
+      <div class="panel-header">VOLUMES SEM ENDEREÇO</div>
       <div id="listaPendentes" class="list-pendentes"></div>
     </div>
 
-    <div>
+    <div style="overflow-y: auto; padding-right: 10px;">
       <div class="cadastro-bar">
-        <div class="field-group">
-          <label>RUA:</label>
-          <input type="text" id="addRua" placeholder="Ex: A" style="width: 60px;">
-        </div>
-        <div class="field-group">
-          <label>MÓDULO/PRAT.:</label>
-          <input type="text" id="addModulo" placeholder="Ex: 05" style="width: 80px;">
-        </div>
-        <div class="field-group">
-          <label>NÍVEL:</label>
-          <input type="text" id="addNivel" placeholder="Ex: 01" style="width: 60px;">
-        </div>
-        <button class="btn-action" id="btnCriarEndereco" style="background:var(--primary); height: 35px; padding: 0 20px;">CRIAR NOVO ENDEREÇO</button>
+        <div class="field-group"><label>RUA</label><input type="text" id="addRua" placeholder="Ex: A" style="width: 70px;"></div>
+        <div class="field-group"><label>MÓDULO</label><input type="text" id="addModulo" placeholder="Ex: 001" style="width: 80px;"></div>
+        <div class="field-group"><label>NÍVEL</label><input type="text" id="addNivel" placeholder="Ex: 01" style="width: 70px;"></div>
+        <button class="btn-action" id="btnCriarEndereco" style="background:var(--primary); height: 42px; padding: 0 25px;">CRIAR NOVO ENDEREÇO</button>
       </div>
       <div class="grid-enderecos" id="gridEnderecos"></div>
     </div>
   </div>
+
+  <div id="modalAcao" class="modal-overlay">
+    <div class="modal-content">
+        <div id="modalTitle" class="modal-header">Transferir Volume</div>
+        <div class="field-group">
+            <label id="labelSelect">Selecione o Endereço de Destino:</label>
+            <select id="selectDestino" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc; width: 100%;"></select>
+        </div>
+        <div class="field-group" style="margin-top: 15px;">
+            <label>Quantidade:</label>
+            <input type="number" id="inputQtdAcao" min="1" value="1">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-action" style="background:var(--gray)" onclick="fecharModal()">Cancelar</button>
+            <button id="btnConfirmarAcao" class="btn-action" style="background:var(--success)">Confirmar Operação</button>
+        </div>
+    </div>
+  </div>
+
   <script type="module" src="js/estoque.js"></script>
 </body>
 </html>
