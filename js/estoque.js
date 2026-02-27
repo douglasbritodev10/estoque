@@ -46,103 +46,94 @@ function render() {
             lista.innerHTML += `
                 <div class="card-pendente" style="border-left: 5px solid #dc3545; padding: 10px; background: #fff; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <div style="font-size: 9px; color: #004a99; font-weight: bold;">${p.forn}</div>
-                    <div style="font-size: 12px; font-weight: bold; margin: 3px 0;">${v.descricao}</div>
+                    <div style="font-size: 12px; font-weight: bold;">${v.descricao}</div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span>Qtd: <b>${v.quantidade}</b></span>
-                        <button onclick="window.abrirMover('${v.id}')" style="background: #28a745; color: white; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 10px;">GUARDAR</button>
+                        <button onclick="window.abrirModalMover('${v.id}')" style="background: #28a745; color: white; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 10px;">GUARDAR</button>
                     </div>
                 </div>
             `;
         }
     });
 
-    // Endereços
+    // Grid Endereços
     const grid = document.getElementById("gridEnderecos");
     grid.innerHTML = "";
     dbState.enderecos.forEach(end => {
         const vols = dbState.volumes.filter(v => v.enderecoId === end.id && v.quantidade > 0);
         grid.innerHTML += `
-            <div style="background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <div style="background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
                 <div style="background: #004a99; color: white; padding: 8px 12px; font-weight: bold; display: flex; justify-content: space-between;">
                     <span>RUA ${end.rua} - MOD ${end.modulo}</span>
-                    <i class="fas fa-trash" onclick="deletarLocal('${end.id}')" style="cursor:pointer; font-size: 12px; opacity: 0.7;"></i>
+                    <i class="fas fa-trash" onclick="deletarLocal('${end.id}')" style="cursor:pointer; font-size: 12px;"></i>
                 </div>
-                <div style="padding: 10px; min-height: 50px;">
+                <div style="padding: 10px;">
                     ${vols.map(v => `
                         <div style="background: #f8f9fa; border-bottom: 1px solid #eee; padding: 5px; margin-bottom: 5px;">
-                            <div style="font-size: 10px; color: #004a99; font-weight: bold;">${dbState.produtos[v.produtoId]?.forn || ''}</div>
                             <div style="font-size: 12px;"><b>${v.quantidade}x</b> ${v.descricao}</div>
-                            <div style="display: flex; gap: 5px; margin-top: 5px;">
-                                <button onclick="abrirMover('${v.id}')" style="flex: 1; font-size: 9px; cursor: pointer;">MOVER</button>
-                                <button onclick="darSaida('${v.id}')" style="flex: 1; font-size: 9px; color: red; cursor: pointer;">SAÍDA</button>
-                            </div>
+                            <button onclick="abrirModalMover('${v.id}')" style="font-size: 9px; margin-top: 5px; cursor: pointer;">Mover</button>
                         </div>
-                    `).join('') || '<div style="color: #ccc; font-size: 11px; text-align: center; margin-top: 10px;">Vazio</div>'}
+                    `).join('') || '<div style="color: #ccc; font-size: 11px; text-align: center;">Vazio</div>'}
                 </div>
             </div>
         `;
     });
 }
 
-// Lógica de Movimentação (WMS)
-window.abrirMover = (volId) => {
+// MODAL COM LISTA SUSPENSA (SELECT)
+window.abrirModalMover = (volId) => {
     const vol = dbState.volumes.find(v => v.id === volId);
-    const qtd = prompt(`Mover ${vol.descricao}\nQuantidade disponível: ${vol.quantidade}\nDigite quanto deseja mover:`, vol.quantidade);
+    const modal = document.getElementById("modalMaster");
+    document.getElementById("modalTitle").innerText = `Mover: ${vol.descricao}`;
     
-    if (qtd && parseInt(qtd) > 0) {
-        const valor = parseInt(qtd);
-        if (valor > vol.quantidade) return alert("Quantidade indisponível!");
-        
-        const destino = prompt("Para qual RUA e MÓDULO?\nExemplo: A-01");
-        if (destino) {
-            const [r, m] = destino.split("-");
-            const local = dbState.enderecos.find(e => e.rua === r.toUpperCase() && e.modulo === m);
-            
-            if (local) {
-                executarMover(volId, local.id, valor);
-            } else {
-                alert("Endereço não encontrado! Crie o endereço primeiro.");
-            }
-        }
-    }
+    document.getElementById("modalBody").innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <label style="font-size:12px; font-weight:bold;">Selecione o Endereço de Destino:</label>
+            <select id="selectDestino" style="padding:10px; border-radius:4px; border:1px solid #ccc;">
+                ${dbState.enderecos.map(e => `<option value="${e.id}">RUA ${e.rua} - MOD ${e.modulo}</option>`).join('')}
+            </select>
+            <label style="font-size:12px; font-weight:bold;">Quantidade (Disponível: ${vol.quantidade}):</label>
+            <input type="number" id="inputQtdMover" value="${vol.quantidade}" max="${vol.quantidade}" min="1" style="padding:10px; border-radius:4px; border:1px solid #ccc;">
+        </div>
+    `;
+    
+    modal.style.display = "flex";
+    document.getElementById("btnConfirmar").onclick = () => {
+        const endId = document.getElementById("selectDestino").value;
+        const qtd = parseInt(document.getElementById("inputQtdMover").value);
+        if(qtd > 0) processarMover(volId, endId, qtd);
+    };
 };
 
-async function executarMover(volIdOrigem, endIdDestino, qtd) {
-    const volOrigem = dbState.volumes.find(v => v.id === volIdOrigem);
-    const volNoDestino = dbState.volumes.find(v => v.enderecoId === endIdDestino && v.produtoId === volOrigem.produtoId && v.descricao === volOrigem.descricao);
+async function processarMover(volId, endId, qtd) {
+    const volOrigem = dbState.volumes.find(v => v.id === volId);
+    const volDestino = dbState.volumes.find(v => v.enderecoId === endId && v.produtoId === volOrigem.produtoId && v.descricao === volOrigem.descricao);
 
     if (qtd >= volOrigem.quantidade) {
-        if (volNoDestino) {
-            await updateDoc(doc(db, "volumes", volNoDestino.id), { quantidade: increment(volOrigem.quantidade) });
-            await deleteDoc(doc(db, "volumes", volIdOrigem));
+        if (volDestino) {
+            await updateDoc(doc(db, "volumes", volDestino.id), { quantidade: increment(volOrigem.quantidade) });
+            await deleteDoc(doc(db, "volumes", volId));
         } else {
-            await updateDoc(doc(db, "volumes", volIdOrigem), { enderecoId: endIdDestino });
+            await updateDoc(doc(db, "volumes", volId), { enderecoId: endId });
         }
     } else {
-        await updateDoc(doc(db, "volumes", volIdOrigem), { quantidade: increment(-qtd) });
-        if (volNoDestino) {
-            await updateDoc(doc(db, "volumes", volNoDestino.id), { quantidade: increment(qtd) });
+        await updateDoc(doc(db, "volumes", volId), { quantidade: increment(-qtd) });
+        if (volDestino) {
+            await updateDoc(doc(db, "volumes", volDestino.id), { quantidade: increment(qtd) });
         } else {
             await addDoc(collection(db, "volumes"), {
                 produtoId: volOrigem.produtoId,
                 descricao: volOrigem.descricao,
                 quantidade: qtd,
-                enderecoId: endIdDestino
+                enderecoId: endId
             });
         }
     }
+    document.getElementById("modalMaster").style.display = "none";
     syncUI();
 }
 
-window.darSaida = async (volId) => {
-    const vol = dbState.volumes.find(v => v.id === volId);
-    const q = prompt(`Saída de ${vol.descricao}. Qtd:`, "1");
-    if(q && parseInt(q) > 0) {
-        await updateDoc(doc(db, "volumes", volId), { quantidade: increment(-parseInt(q)) });
-        syncUI();
-    }
-};
-
+// Funções de Estrutura
 document.getElementById("btnCriarEndereco").onclick = async () => {
     const r = document.getElementById("addRua").value.toUpperCase();
     const m = document.getElementById("addModulo").value;
@@ -153,4 +144,12 @@ document.getElementById("btnCriarEndereco").onclick = async () => {
     }
 };
 
+window.deletarLocal = async (id) => {
+    if(confirm("Excluir endereço?")) {
+        await deleteDoc(doc(db, "enderecos", id));
+        syncUI();
+    }
+};
+
+window.fecharModal = () => document.getElementById("modalMaster").style.display = "none";
 window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
