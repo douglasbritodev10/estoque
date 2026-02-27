@@ -22,7 +22,7 @@ async function loadAll() {
         const p = d.data();
         dbState.produtos[d.id] = { nome: p.nome, forn: dbState.fornecedores[p.fornecedorId] || "---" };
     });
-    await syncUI();
+    syncUI();
 }
 
 async function syncUI() {
@@ -33,143 +33,140 @@ async function syncUI() {
     const vSnap = await getDocs(collection(db, "volumes"));
     dbState.volumes = vSnap.docs.map(d => ({id: d.id, ...d.data()}));
 
-    renderPendentes();
-    renderCards();
+    render();
 }
 
-function renderPendentes() {
+function render() {
+    // 1. Renderizar Pendentes (Volumes sem endereço)
     const container = document.getElementById("listaPendentes");
     container.innerHTML = "";
     dbState.volumes.forEach(v => {
         if (v.quantidade > 0 && (!v.enderecoId || v.enderecoId === "")) {
-            const p = dbState.produtos[v.produtoId] || {forn: '---'};
-            const card = document.createElement("div");
-            card.className = "card-pendente";
-            card.innerHTML = `
-                <div style="font-size:10px; font-weight:bold; color:var(--primary)">${p.forn.toUpperCase()}</div>
-                <div style="font-size:13px; font-weight:600; margin:5px 0;">${v.descricao}</div>
+            const prod = dbState.produtos[v.produtoId] || {forn: '---'};
+            const div = document.createElement("div");
+            div.className = "card-pendente";
+            div.innerHTML = `
+                <div style="font-size:9px; font-weight:bold; color:var(--primary);">${prod.forn}</div>
+                <div style="font-size:12px; font-weight:bold; margin:4px 0;">${v.descricao}</div>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:900;">QTD: ${v.quantidade}</span>
-                    <button onclick="window.abrirModalMover('${v.id}')" class="btn-action" style="background:var(--success); padding:5px 10px;">ENDEREÇAR</button>
+                    <span>Qtd: <b>${v.quantidade}</b></span>
+                    <button onclick="window.abrirMover('${v.id}')" style="background:var(--success); color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size:10px;">GUARDAR</button>
                 </div>
             `;
-            container.appendChild(card);
+            container.appendChild(div);
         }
     });
-}
 
-function renderCards() {
+    // 2. Renderizar Grid de Endereços
     const grid = document.getElementById("gridEnderecos");
     grid.innerHTML = "";
     dbState.enderecos.forEach(end => {
-        const volumesAqui = dbState.volumes.filter(v => v.enderecoId === end.id && v.quantidade > 0);
-        const card = document.createElement("div");
-        card.className = "card-endereco";
-        card.innerHTML = `
+        const volsAqui = dbState.volumes.filter(v => v.enderecoId === end.id && v.quantidade > 0);
+        const div = document.createElement("div");
+        div.className = "card-endereco";
+        div.innerHTML = `
             <div class="card-end-header">
-                <span>RUA ${end.rua} - M${end.modulo}</span>
-                <button onclick="window.deletarLocal('${end.id}')" style="background:none; border:none; color:#ff9999; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                <span>RUA ${end.rua} - MOD ${end.modulo}</span>
+                <i class="fas fa-trash" onclick="window.deletarLocal('${end.id}')" style="cursor:pointer; opacity:0.7;"></i>
             </div>
             <div class="card-end-body">
-                ${volumesAqui.map(v => {
-                    const p = dbState.produtos[v.produtoId] || {forn: '---'};
+                ${volsAqui.map(v => {
+                    const prod = dbState.produtos[v.produtoId] || {forn: '---'};
                     return `
                     <div class="vol-item">
-                        <div style="font-size:9px; font-weight:bold; color:var(--primary);">${p.forn}</div>
-                        <div style="font-size:12px;"><b>${v.quantidade}x</b> ${v.descricao}</div>
-                        <div style="display:flex; gap:5px; margin-top:8px;">
-                            <button onclick="window.abrirModalMover('${v.id}')" style="flex:1; border:1px solid var(--warning); color:var(--warning); background:none; font-size:10px; cursor:pointer;">MOVER</button>
-                            <button onclick="window.darSaida('${v.id}')" style="flex:1; border:1px solid var(--danger); color:var(--danger); background:none; font-size:10px; cursor:pointer;">SAÍDA</button>
+                        <div class="vol-item-forn">${prod.forn}</div>
+                        <div class="vol-item-desc">${v.quantidade}x ${v.descricao}</div>
+                        <div style="margin-top:8px; display:flex; gap:5px;">
+                            <button onclick="window.abrirMover('${v.id}')" style="flex:1; font-size:9px; cursor:pointer;">MOVER</button>
+                            <button onclick="window.darSaida('${v.id}')" style="flex:1; font-size:9px; color:var(--danger); cursor:pointer;">SAÍDA</button>
                         </div>
                     </div>`;
-                }).join('') || '<div style="text-align:center; color:#ccc; font-size:11px;">Vazio</div>'}
+                }).join('') || '<div style="color:#ccc; font-size:11px; text-align:center;">Vazio</div>'}
             </div>
         `;
-        grid.appendChild(card);
+        grid.appendChild(div);
     });
 }
 
-window.abrirModalMover = (volId) => {
+// --- FUNÇÕES DE MOVIMENTAÇÃO (WMS) ---
+
+window.abrirMover = (volId) => {
     const vol = dbState.volumes.find(v => v.id === volId);
-    document.getElementById("modalTitle").innerText = "Movimentar Lote";
+    document.getElementById("modalTitle").innerText = "Movimentar Produto";
     document.getElementById("modalBody").innerHTML = `
-        <div style="margin-bottom:15px; font-size:13px;"><b>Item:</b> ${vol.descricao}</div>
-        <div style="display:flex; flex-direction:column; gap:10px;">
-            <label style="font-size:11px; font-weight:bold;">QUANTIDADE (DISPONÍVEL: ${vol.quantidade})</label>
-            <input type="number" id="movQtd" value="${vol.quantidade}" min="1" max="${vol.quantidade}" style="padding:10px; border-radius:8px; border:1px solid #ccc;">
-            <label style="font-size:11px; font-weight:bold;">DESTINO</label>
-            <select id="movDestino" style="padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <p style="font-size:13px;"><b>Item:</b> ${vol.descricao}</p>
+        <div class="field-group">
+            <label>QUANTIDADE A MOVER (MAX: ${vol.quantidade})</label>
+            <input type="number" id="qtdMover" value="${vol.quantidade}" max="${vol.quantidade}" min="1">
+        </div>
+        <div class="field-group" style="margin-top:10px;">
+            <label>DESTINO</label>
+            <select id="destinoMover" style="padding:8px; border-radius:4px;">
                 ${dbState.enderecos.map(e => `<option value="${e.id}">RUA ${e.rua} - MOD ${e.modulo}</option>`).join('')}
             </select>
         </div>
     `;
     document.getElementById("modalMaster").style.display = "flex";
-    document.getElementById("btnConfirmarModal").onclick = () => executarMover(volId, document.getElementById("movDestino").value, parseInt(document.getElementById("movQtd").value));
+    document.getElementById("btnConfirmar").onclick = () => processarMover(volId, document.getElementById("destinoMover").value, parseInt(document.getElementById("qtdMover").value));
 };
 
-async function executarMover(volOrigemId, endDestinoId, qtdMover) {
-    const volOrigem = dbState.volumes.find(v => v.id === volOrigemId);
+async function processarMover(volIdOrigem, endIdDestino, qtd) {
+    const volOrigem = dbState.volumes.find(v => v.id === volIdOrigem);
     
-    // REGRA DE AGRUPAMENTO: Se já existe exatamente o mesmo volume (mesmo produtoId e descrição) no destino, somamos.
-    const volDestinoExistente = dbState.volumes.find(v => 
-        v.enderecoId === endDestinoId && 
-        v.produtoId === volOrigem.produtoId && 
-        v.descricao === volOrigem.descricao
-    );
+    // Agrupamento: Verifica se já existe o mesmo produto no endereço de destino
+    const volDestino = dbState.volumes.find(v => v.enderecoId === endIdDestino && v.produtoId === volOrigem.produtoId && v.descricao === volOrigem.descricao);
 
-    if (qtdMover >= volOrigem.quantidade) {
-        // MOVE TUDO
-        if (volDestinoExistente) {
-            await updateDoc(doc(db, "volumes", volDestinoExistente.id), { quantidade: increment(volOrigem.quantidade) });
-            await deleteDoc(doc(db, "volumes", volOrigemId));
+    if (qtd >= volOrigem.quantidade) {
+        // Move o lote inteiro
+        if (volDestino) {
+            await updateDoc(doc(db, "volumes", volDestino.id), { quantidade: increment(volOrigem.quantidade) });
+            await deleteDoc(doc(db, "volumes", volIdOrigem));
         } else {
-            await updateDoc(doc(db, "volumes", volOrigemId), { enderecoId: endDestinoId });
+            await updateDoc(doc(db, "volumes", volIdOrigem), { enderecoId: endIdDestino });
         }
     } else {
-        // MOVE PARCIAL: Mantém a origem e cria/soma no destino
-        await updateDoc(doc(db, "volumes", volOrigemId), { quantidade: increment(-qtdMover) });
-        if (volDestinoExistente) {
-            await updateDoc(doc(db, "volumes", volDestinoExistente.id), { quantidade: increment(qtdMover) });
+        // Move parte do lote (Cria/Soma no destino e subtrai da origem)
+        await updateDoc(doc(db, "volumes", volIdOrigem), { quantidade: increment(-qtd) });
+        if (volDestino) {
+            await updateDoc(doc(db, "volumes", volDestino.id), { quantidade: increment(qtd) });
         } else {
             await addDoc(collection(db, "volumes"), {
                 produtoId: volOrigem.produtoId,
                 descricao: volOrigem.descricao,
-                quantidade: qtdMover,
-                enderecoId: endDestinoId
+                quantidade: qtd,
+                enderecoId: endIdDestino
             });
         }
     }
     fecharModal();
-    syncUI();
+    loadAll();
 }
 
 window.darSaida = async (volId) => {
     const vol = dbState.volumes.find(v => v.id === volId);
-    const qtd = prompt(`Quantas unidades saíram de ${vol.descricao}?`, "1");
-    if (qtd && parseInt(qtd) > 0) {
-        const valor = parseInt(qtd);
-        if(valor > vol.quantidade) return alert("Quantidade maior do que a disponível no endereço!");
-        await updateDoc(doc(db, "volumes", volId), { quantidade: increment(-valor) });
-        syncUI();
+    const qtd = prompt(`Baixa de estoque em: ${vol.descricao}\nQuantas unidades saíram?`, "1");
+    if(qtd && parseInt(qtd) > 0) {
+        await updateDoc(doc(db, "volumes", volId), { quantidade: increment(-parseInt(qtd)) });
+        loadAll();
     }
 };
 
-window.deletarLocal = async (id) => {
-    if(confirm("Excluir local? Os produtos aqui voltarão para 'Não Endereçados'.")){
-        const afetados = dbState.volumes.filter(v => v.enderecoId === id);
-        for (const v of afetados) { await updateDoc(doc(db, "volumes", v.id), { enderecoId: "" }); }
-        await deleteDoc(doc(db, "enderecos", id));
-        syncUI();
-    }
-};
-
-document.getElementById("btnCriarEndereco").onclick = async () => {
+window.criarLocal = async () => {
     const r = document.getElementById("addRua").value.toUpperCase();
     const m = document.getElementById("addModulo").value;
     const n = document.getElementById("addNivel").value;
-    if(!r || !m) return alert("Preencha Rua e Módulo!");
-    await addDoc(collection(db, "enderecos"), { rua: r, modulo: m, nivel: n, dataCriacao: serverTimestamp() });
-    syncUI();
+    if(!r || !m) return alert("Rua e Módulo são obrigatórios!");
+    await addDoc(collection(db, "enderecos"), { rua: r, modulo: m, nivel: n, data: serverTimestamp() });
+    loadAll();
+};
+
+window.deletarLocal = async (id) => {
+    if(confirm("Deseja apagar este local? Produtos aqui voltarão para 'Não Endereçados'.")){
+        const afetados = dbState.volumes.filter(v => v.enderecoId === id);
+        for(let v of afetados) { await updateDoc(doc(db, "volumes", v.id), { enderecoId: "" }); }
+        await deleteDoc(doc(db, "enderecos", id));
+        loadAll();
+    }
 };
 
 window.fecharModal = () => document.getElementById("modalMaster").style.display = "none";
