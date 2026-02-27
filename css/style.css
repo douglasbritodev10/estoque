@@ -1,139 +1,111 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
 
 :root {
     --primary: #004a99;
-    --primary-hover: #003670;
-    --secondary: #002d5f; /* Um azul mais escuro para detalhes */
-    --accent: #f39c12;    /* Laranja para contraste, se necessário */
-    --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    --white: #ffffff;
+    --primary-dark: #003670;
+    --accent: #f39c12; /* Laranja Simonetti para detalhes */
     --text: #2c3e50;
-    --error: #e74c3c;
-    --glass-bg: rgba(255, 255, 255, 0.6); /* Fundo semi-transparente para o glassmorphism */
-    --glass-border: rgba(255, 255, 255, 0.3);
+    --white: #ffffff;
 }
 
 body {
     margin: 0;
     padding: 0;
     font-family: 'Inter', sans-serif;
-    background: var(--primary); /* Fundo primário azul */
+    background-color: var(--primary);
+    /* Padrão de fundo sutil com 'MS' */
+    background-image: linear-gradient(135deg, rgba(0, 74, 153, 0.9) 0%, rgba(0, 45, 95, 0.95) 100%),
+        url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='10' y='50' fill='white' fill-opacity='0.05' font-family='Inter' font-weight='800' font-size='30'%3EMS%3C/text%3E%3C/svg%3E");
     height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden; /* Para garantir que o padrão de fundo não cause scroll */
-
-    /* Padrão MS sutil no fundo */
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23003670' fill-opacity='0.1'%3E%3Cpath d='M30 15c-6.63 0-12 5.37-12 12s5.37 12 12 12 12-5.37 12-12-5.37-12-12-12zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zM0 30c6.63 0 12-5.37 12-12S6.63 6 0 6s-12 5.37-12 12 5.37 12 12 12zm0-18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z'/%3E%3Cpath d='M0 30c6.63 0 12-5.37 12-12S6.63 6 0 6s-12 5.37-12 12 5.37 12 12 12zm0-18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z'/%3E%3Cpath d='M30 15c-6.63 0-12 5.37-12 12s5.37 12 12 12 12-5.37 12-12-5.37-12-12-12zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z'/%3E%3Cpath d='M60 30c6.63 0 12-5.37 12-12S6.63 6 60 6s-12 5.37-12 12 5.37 12 12 12zm0-18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: 60px 60px; /* Tamanho do SVG para um padrão repetitivo */
-    background-blend-mode: overlay; /* Mistura o padrão com a cor de fundo */
 }
-
 
 .login-container {
-    background: var(--glass-bg); /* Fundo semi-transparente */
-    border: 1px solid var(--glass-border); /* Borda sutil */
-    backdrop-filter: blur(10px); /* Efeito de desfoque */
-    -webkit-backdrop-filter: blur(10px); /* Suporte para navegadores Webkit */
-    padding: 40px;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); /* Sombra mais profunda para destacar */
+    background: rgba(255, 255, 255, 0.95);
+    padding: 50px 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
     width: 100%;
-    max-width: 380px;
+    max-width: 400px;
     text-align: center;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.login-container:hover {
-    transform: translateY(-8px); /* Elevado um pouco mais no hover */
-    box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.15); /* Sombra mais intensa no hover */
-}
-
-/* Remover a imagem do logo */
-.login-container img {
-    display: none; 
-}
-
+/* Estilização do título sem imagem */
 h2 {
-    color: var(--secondary); /* Título em azul mais escuro */
-    font-weight: 600;
-    margin-bottom: 30px;
-    font-size: 28px; /* Título um pouco maior */
-    position: relative;
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 28px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: -1px;
 }
 
-/* Detalhe visual abaixo do título */
-h2::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: -10px;
-    width: 60px;
-    height: 4px;
-    background: var(--accent); /* Linha laranja */
-    border-radius: 2px;
+.subtitle {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-bottom: 30px;
+    display: block;
 }
 
 .input-group {
-    text-align: left;
-    margin-bottom: 25px; /* Mais espaço entre os campos */
+    margin-bottom: 20px;
+    position: relative;
 }
 
 input {
     width: 100%;
-    padding: 14px 18px; /* Mais padding para um toque moderno */
-    margin-top: 8px;
-    border: 1.5px solid #bdc3c7; /* Borda mais suave */
-    border-radius: 10px; /* Cantos mais arredondados */
+    padding: 15px;
+    border: 2px solid #edf2f7;
+    border-radius: 12px;
     font-size: 16px;
-    box-sizing: border-box;
     transition: all 0.3s ease;
+    box-sizing: border-box;
     outline: none;
-    background-color: var(--white); /* Fundo branco para o input */
-    color: var(--text);
+    background: #f8fafc;
 }
 
 input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(0, 74, 153, 0.15); /* Sombra de foco mais forte */
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(0, 74, 153, 0.1);
 }
 
 button {
     width: 100%;
-    padding: 16px; /* Mais padding para o botão */
-    background-color: var(--primary);
+    padding: 16px;
+    background: var(--primary);
     color: white;
     border: none;
-    border-radius: 10px; /* Cantos mais arredondados */
-    font-size: 18px; /* Texto do botão maior */
-    font-weight: 700; /* Mais negrito */
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s ease, transform 0.2s ease;
-    margin-top: 20px;
-    letter-spacing: 0.8px; /* Espaçamento entre letras */
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    box-shadow: 0 4px 6px rgba(0, 74, 153, 0.2);
 }
 
 button:hover {
-    background-color: var(--primary-hover);
-    transform: translateY(-2px); /* Efeito de elevação no hover */
-}
-
-button:active {
-    transform: scale(0.97); /* Efeito de pressionar */
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(0, 74, 153, 0.3);
 }
 
 #error {
+    color: #e74c3c;
     font-size: 14px;
-    margin-top: 20px; /* Mais espaço */
+    margin-top: 15px;
     font-weight: 500;
-    min-height: 20px;
-    color: var(--error);
 }
 
 .footer-text {
-    margin-top: 30px; /* Mais espaço */
-    font-size: 13px;
-    color: #95a5a6; /* Texto de rodapé mais suave */
+    margin-top: 30px;
+    font-size: 12px;
+    color: #bdc3c7;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
 }
