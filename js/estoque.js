@@ -100,7 +100,7 @@ window.abrirModalMover = (volId) => {
 
     const modal = document.getElementById("modalMaster");
     const body = document.getElementById("modalBody");
-    const btnConfirmar = document.getElementById("btnConfirmar");
+    const btnConfirmar = document.getElementById("btnConfirmarModal");
 
     let options = dbState.enderecos.map(e => 
         `<option value="${e.id}">RUA ${e.rua} - MOD ${e.modulo} ${e.nivel ? '(Nív '+e.nivel+')' : ''}</option>`
