@@ -1,161 +1,94 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assitência - Móveis Simonetti</title>
-    <style>
-        :root {
-            --primary: #004a99;
-            --glass-bg: rgba(255, 255, 255, 0.2);
-            --glass-border: rgba(255, 255, 255, 0.3);
-            --text-color: #ffffff;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Móveis Simonetti - Gestão de Estoque</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #004a99; --secondary: #2c3e50; --success: #28a745;
+      --danger: #dc3545; --warning: #f39c12; --light: #f8f9fa;
+      --border: #dee2e6; --shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    body { background-color: #f1f3f5; margin: 0; font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; }
+    
+    .top-nav { background: var(--primary); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); }
+    .btn-nav { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 6px; cursor: pointer; text-decoration: none; font-weight: 600; transition: 0.3s; }
+    .btn-nav:hover { background: rgba(255,255,255,0.3); }
 
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #002d5f 0%, #004a99 100%);
-            background-attachment: fixed;
-            min-height: 100vh;
-            color: var(--text-color);
-        }
+    .main-layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; padding: 20px; height: calc(100vh - 65px); box-sizing: border-box; }
 
-        /* Top Bar */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 30px;
-            background: rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-        }
+    /* Painel Esquerdo */
+    .panel-pendentes { background: white; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: var(--shadow); }
+    .panel-header { background: var(--danger); color: white; padding: 15px; font-weight: bold; text-align: center; border-radius: 12px 12px 0 0; }
+    .list-pendentes { overflow-y: auto; flex-grow: 1; padding: 15px; }
+    .card-pendente { 
+        background: #fff; border: 1px solid #eee; padding: 15px; margin-bottom: 12px; border-radius: 10px; 
+        border-left: 5px solid var(--danger); box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
 
-        .user-greeting {
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
+    /* Grid de Endereços */
+    .cadastro-bar { background: white; padding: 20px; border-radius: 12px; display: flex; gap: 15px; align-items: flex-end; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .grid-enderecos { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; overflow-y: auto; padding-bottom: 50px; }
+    
+    .card-endereco { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+    .card-end-header { background: var(--secondary); color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .card-end-body { padding: 15px; flex-grow: 1; min-height: 100px; }
 
-        .btn-logout {
-            background: rgba(220, 53, 69, 0.8);
-            border: 1px solid var(--glass-border);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+    .vol-item { background: #f8f9fa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; }
 
-        .btn-logout:hover { background: #dc3545; }
-
-        /* Header Logo Section */
-        .header-section {
-            text-align: center;
-            margin: 50px 0;
-        }
-
-        .logo-ms {
-            font-size: 4rem;
-            font-weight: 900;
-            margin-bottom: 0;
-            letter-spacing: -2px;
-            text-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .title-main { font-size: 2.2rem; margin: 0; }
-        .subtitle { font-size: 1.1rem; opacity: 0.8; font-style: italic; }
-
-        /* Glass Cards Container */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-        }
-
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 40px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            text-decoration: none;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .glass-card:hover {
-            transform: translateY(-10px);
-            background: rgba(255, 255, 255, 0.25);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-        }
-
-        .card-icon { font-size: 3rem; margin-bottom: 15px; }
-        .card-title { font-size: 1.4rem; font-weight: bold; }
-    </style>
+    /* Modais */
+    .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:1000; backdrop-filter: blur(4px); }
+    .modal-content { background: white; padding: 25px; border-radius: 15px; width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    .field-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px; }
+    .field-group label { font-size: 12px; font-weight: bold; color: var(--secondary); }
+    .field-group input, .field-group select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+    
+    .btn-action { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; transition: 0.2s; }
+    .btn-success { background: var(--success); }
+    .btn-danger { background: var(--danger); }
+  </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="user-greeting" id="userGreeting">Olá, Carregando...</div>
-        <button class="btn-logout" id="btnLogout">Sair do Sistema</button>
+  <div class="top-nav">
+    <div>
+      <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> VOLTAR</a>
+      <span id="labelUser" style="margin-left: 20px; font-weight: bold;">Olá...</span>
+    </div>
+    <div style="font-weight: 900; letter-spacing: 1px;">MAPA LOGÍSTICO DE ENDEREÇAMENTO</div>
+    <button onclick="window.logout()" class="btn-nav" style="background: var(--danger);">SAIR</button>
+  </div>
+
+  <div class="main-layout">
+    <div class="panel-pendentes">
+      <div class="panel-header">VOLUMES NÃO ENDEREÇADOS</div>
+      <div id="listaPendentes" class="list-pendentes"></div>
     </div>
 
-    <div class="header-section">
-        <div class="logo-ms">MS</div>
-        <h1 class="title-main">Móveis Simonetti</h1>
-        <p class="subtitle">Gestão de Estoque e Pulmão de Assistência</p>
+    <div style="overflow-y: auto;">
+      <div class="cadastro-bar">
+        <div class="field-group"><label>RUA</label><input type="text" id="addRua" placeholder="Ex: A" style="width: 70px;"></div>
+        <div class="field-group"><label>MÓDULO</label><input type="text" id="addModulo" placeholder="001" style="width: 80px;"></div>
+        <div class="field-group"><label>NÍVEL</label><input type="text" id="addNivel" placeholder="01" style="width: 70px;"></div>
+        <button class="btn-action btn-success" id="btnCriarEndereco" style="height: 42px;">CRIAR LOCAL</button>
+      </div>
+      <div class="grid-enderecos" id="gridEnderecos"></div>
     </div>
+  </div>
 
-    <div class="container">
-        <a href="produtos.html" class="glass-card">
-            <div class="card-icon">📦</div>
-            <div class="card-title">Gestão de Estoque / Pulmão</div>
-        </a>
-
-        <a href="estoque.html" class="glass-card">
-            <div class="card-icon">📊</div>
-            <div class="card-title">Endereçamento</div>
-        </a>
-        
-        <a href="fornecedores.html" class="glass-card">
-            <div class="card-icon">🏭</div>
-            <div class="card-title">Cadastrar Fornecedores</div>
-        </a>        
-
-        <a href="historico.html" class="glass-card">
-            <div class="card-icon">📜</div>
-            <div class="card-title">Histórico de Giro</div>
-        </a>
+  <div id="modalMaster" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle" style="margin-top:0; color:var(--primary);">Ação</h3>
+      <div id="modalBody"></div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <button onclick="fecharModal()" class="btn-action" style="background:var(--secondary);">Cancelar</button>
+        <button id="btnConfirmarModal" class="btn-action btn-success">Confirmar</button>
+      </div>
     </div>
+  </div>
 
-    <script type="module">
-        import { auth } from "./js/firebase-config.js";
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
-        // Saudaçao Dinâmica
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const userName = user.email.split('@')[0];
-                document.getElementById("userGreeting").innerText = `Olá, ${userName.toUpperCase()}`;
-            } else {
-                window.location.href = "index.html";
-            }
-        });
-
-        document.getElementById("btnLogout").onclick = () => {
-            auth.signOut().then(() => window.location.href = "index.html");
-        };
-    </script>
+  <script type="module" src="js/estoque.js"></script>
 </body>
 </html>
