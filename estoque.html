@@ -3,131 +3,89 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Móveis Simonetti - Gestão de Estoque Profissional</title>
+  <title>Móveis Simonetti - Gestão de Estoque</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root {
-      --primary: #004a99;
-      --secondary: #2c3e50;
-      --success: #28a745;
-      --danger: #dc3545;
-      --warning: #f39c12;
-      --light: #f8f9fa;
-      --border-color: #dee2e6;
-      --shadow: 0 4px 6px rgba(0,0,0,0.1);
+      --primary: #004a99; --secondary: #2c3e50; --success: #28a745;
+      --danger: #dc3545; --warning: #f39c12; --light: #f8f9fa;
+      --border: #dee2e6; --shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-
-    body { background-color: #f1f3f5; margin: 0; font-family: 'Inter', 'Segoe UI', sans-serif; color: #333; }
-
-    /* Nav Bar */
-    .top-nav {
-      background: var(--primary); color: white; padding: 12px 25px;
-      display: flex; justify-content: space-between; align-items: center;
-      box-shadow: var(--shadow);
-    }
-    .btn-nav { 
-      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; 
-      padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 13px; font-weight: 600;
-      transition: 0.3s;
-    }
-    .btn-nav:hover { background: rgba(255,255,255,0.25); }
-
-    /* Layout */
-    .main-layout { display: grid; grid-template-columns: 380px 1fr; gap: 25px; padding: 25px; height: calc(100vh - 70px); box-sizing: border-box; }
-
-    /* Painel Lateral */
-    .panel-pendentes { background: white; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); }
-    .panel-header { background: var(--danger); color: white; padding: 15px; font-weight: 700; text-align: center; letter-spacing: 0.5px; }
-    .list-pendentes { overflow-y: auto; flex-grow: 1; padding: 15px; background: #fffcfc; }
+    body { background-color: #f1f3f5; margin: 0; font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; }
     
-    .card-pendente { 
-        background: white; border: 1px solid #eee; padding: 12px; margin-bottom: 12px; 
-        border-radius: 8px; border-left: 5px solid var(--danger);
-        transition: transform 0.2s; position: relative;
-    }
-    .card-pendente:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+    .top-nav { background: var(--primary); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); }
+    .btn-nav { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 6px; cursor: pointer; text-decoration: none; font-weight: 600; transition: 0.3s; }
+    .btn-nav:hover { background: rgba(255,255,255,0.3); }
 
-    /* Conteúdo Principal */
-    .cadastro-bar { background: white; padding: 20px; border-radius: 12px; display: flex; gap: 15px; align-items: flex-end; margin-bottom: 25px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
-    .field-group { display: flex; flex-direction: column; gap: 6px; }
-    .field-group label { font-size: 12px; font-weight: 700; color: var(--secondary); text-transform: uppercase; }
-    .field-group input { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; }
-    .field-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,74,153,0.1); }
+    .main-layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; padding: 20px; height: calc(100vh - 65px); box-sizing: border-box; }
+
+    /* Painel Esquerdo */
+    .panel-pendentes { background: white; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: var(--shadow); }
+    .panel-header { background: var(--danger); color: white; padding: 15px; font-weight: bold; text-align: center; border-radius: 12px 12px 0 0; }
+    .list-pendentes { overflow-y: auto; flex-grow: 1; padding: 15px; }
+    .card-pendente { 
+        background: #fff; border: 1px solid #eee; padding: 15px; margin-bottom: 12px; border-radius: 10px; 
+        border-left: 5px solid var(--danger); box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
 
     /* Grid de Endereços */
-    .grid-enderecos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; align-content: start; }
-    .card-endereco { background: white; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
-    .card-end-header { 
-        background: var(--secondary); color: white; padding: 12px 15px; 
-        display: flex; justify-content: space-between; align-items: center;
-    }
-    .card-end-body { padding: 15px; flex-grow: 1; }
+    .cadastro-bar { background: white; padding: 20px; border-radius: 12px; display: flex; gap: 15px; align-items: flex-end; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .grid-enderecos { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; overflow-y: auto; padding-bottom: 50px; }
     
-    .vol-item { 
-        display: flex; flex-direction: column; gap: 4px;
-        padding: 10px; border-bottom: 1px solid #f0f0f0; background: #fafafa; border-radius: 6px; margin-bottom: 8px;
-    }
-    .vol-item-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px; }
+    .card-endereco { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+    .card-end-header { background: var(--secondary); color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .card-end-body { padding: 15px; flex-grow: 1; min-height: 100px; }
 
-    /* Modais Profissionais */
-    .modal-overlay { 
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000;
-        backdrop-filter: blur(4px);
-    }
-    .modal-content { 
-        background: white; padding: 25px; border-radius: 12px; width: 450px; 
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
-    }
-    .modal-header { font-size: 18px; font-weight: 800; margin-bottom: 20px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; color: var(--primary); }
-    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+    .vol-item { background: #f8f9fa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; }
 
-    .btn-action { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 600; font-size: 12px; transition: 0.2s; }
-    .btn-action:hover { filter: brightness(0.9); }
+    /* Modais */
+    .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:1000; backdrop-filter: blur(4px); }
+    .modal-content { background: white; padding: 25px; border-radius: 15px; width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    .field-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px; }
+    .field-group label { font-size: 12px; font-weight: bold; color: var(--secondary); }
+    .field-group input, .field-group select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+    
+    .btn-action { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; transition: 0.2s; }
+    .btn-success { background: var(--success); }
+    .btn-danger { background: var(--danger); }
   </style>
 </head>
 <body>
 
   <div class="top-nav">
     <div>
-        <a href="produtos.html" class="btn-nav">← VOLTAR</a>
-        <span id="labelUser" style="margin-left: 20px; font-weight: 700; text-transform: uppercase; font-size: 14px;">Olá, USUÁRIO</span>
+      <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> VOLTAR</a>
+      <span id="labelUser" style="margin-left: 20px; font-weight: bold;">Olá...</span>
     </div>
-    <div style="font-weight: 800; font-size: 20px; letter-spacing: 1px;">SISTEMA DE ENDEREÇAMENTO</div>
-    <button onclick="window.logout()" class="btn-nav" style="background: var(--danger);">SAIR DO SISTEMA</button>
+    <div style="font-weight: 900; letter-spacing: 1px;">MAPA LOGÍSTICO DE ENDEREÇAMENTO</div>
+    <button onclick="window.logout()" class="btn-nav" style="background: var(--danger);">SAIR</button>
   </div>
 
   <div class="main-layout">
     <div class="panel-pendentes">
-      <div class="panel-header">VOLUMES SEM ENDEREÇO</div>
+      <div class="panel-header">VOLUMES NÃO ENDEREÇADOS</div>
       <div id="listaPendentes" class="list-pendentes"></div>
     </div>
 
-    <div style="overflow-y: auto; padding-right: 10px;">
+    <div style="overflow-y: auto;">
       <div class="cadastro-bar">
         <div class="field-group"><label>RUA</label><input type="text" id="addRua" placeholder="Ex: A" style="width: 70px;"></div>
-        <div class="field-group"><label>MÓDULO</label><input type="text" id="addModulo" placeholder="Ex: 001" style="width: 80px;"></div>
-        <div class="field-group"><label>NÍVEL</label><input type="text" id="addNivel" placeholder="Ex: 01" style="width: 70px;"></div>
-        <button class="btn-action" id="btnCriarEndereco" style="background:var(--primary); height: 42px; padding: 0 25px;">CRIAR NOVO ENDEREÇO</button>
+        <div class="field-group"><label>MÓDULO</label><input type="text" id="addModulo" placeholder="001" style="width: 80px;"></div>
+        <div class="field-group"><label>NÍVEL</label><input type="text" id="addNivel" placeholder="01" style="width: 70px;"></div>
+        <button class="btn-action btn-success" id="btnCriarEndereco" style="height: 42px;">CRIAR LOCAL</button>
       </div>
       <div class="grid-enderecos" id="gridEnderecos"></div>
     </div>
   </div>
 
-  <div id="modalAcao" class="modal-overlay">
+  <div id="modalMaster" class="modal">
     <div class="modal-content">
-        <div id="modalTitle" class="modal-header">Transferir Volume</div>
-        <div class="field-group">
-            <label id="labelSelect">Selecione o Endereço de Destino:</label>
-            <select id="selectDestino" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc; width: 100%;"></select>
-        </div>
-        <div class="field-group" style="margin-top: 15px;">
-            <label>Quantidade:</label>
-            <input type="number" id="inputQtdAcao" min="1" value="1">
-        </div>
-        <div class="modal-footer">
-            <button class="btn-action" style="background:var(--gray)" onclick="fecharModal()">Cancelar</button>
-            <button id="btnConfirmarAcao" class="btn-action" style="background:var(--success)">Confirmar Operação</button>
-        </div>
+      <h3 id="modalTitle" style="margin-top:0; color:var(--primary);">Ação</h3>
+      <div id="modalBody"></div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <button onclick="fecharModal()" class="btn-action" style="background:var(--secondary);">Cancelar</button>
+        <button id="btnConfirmarModal" class="btn-action btn-success">Confirmar</button>
+      </div>
     </div>
   </div>
 
