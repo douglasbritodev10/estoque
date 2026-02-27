@@ -27,108 +27,101 @@ async function loadAll() {
 
 async function syncUI() {
     const eSnap = await getDocs(collection(db, "enderecos"));
+    const vSnap = await getDocs(collection(db, "volumes"));
+    
     dbState.enderecos = eSnap.docs.map(d => ({id: d.id, ...d.data()}))
         .sort((a,b) => a.rua.localeCompare(b.rua) || a.modulo - b.modulo);
-
-    const vSnap = await getDocs(collection(db, "volumes"));
     dbState.volumes = vSnap.docs.map(d => ({id: d.id, ...d.data()}));
 
     render();
 }
 
 function render() {
-    // 1. Renderizar Pendentes (Volumes sem endereço)
-    const container = document.getElementById("listaPendentes");
-    container.innerHTML = "";
+    // Pendentes
+    const lista = document.getElementById("listaPendentes");
+    lista.innerHTML = "";
     dbState.volumes.forEach(v => {
         if (v.quantidade > 0 && (!v.enderecoId || v.enderecoId === "")) {
-            const prod = dbState.produtos[v.produtoId] || {forn: '---'};
-            const div = document.createElement("div");
-            div.className = "card-pendente";
-            div.innerHTML = `
-                <div style="font-size:9px; font-weight:bold; color:var(--primary);">${prod.forn}</div>
-                <div style="font-size:12px; font-weight:bold; margin:4px 0;">${v.descricao}</div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span>Qtd: <b>${v.quantidade}</b></span>
-                    <button onclick="window.abrirMover('${v.id}')" style="background:var(--success); color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size:10px;">GUARDAR</button>
+            const p = dbState.produtos[v.produtoId] || {forn: '---'};
+            lista.innerHTML += `
+                <div class="card-pendente" style="border-left: 5px solid #dc3545; padding: 10px; background: #fff; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 9px; color: #004a99; font-weight: bold;">${p.forn}</div>
+                    <div style="font-size: 12px; font-weight: bold; margin: 3px 0;">${v.descricao}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Qtd: <b>${v.quantidade}</b></span>
+                        <button onclick="window.abrirMover('${v.id}')" style="background: #28a745; color: white; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 10px;">GUARDAR</button>
+                    </div>
                 </div>
             `;
-            container.appendChild(div);
         }
     });
 
-    // 2. Renderizar Grid de Endereços
+    // Endereços
     const grid = document.getElementById("gridEnderecos");
     grid.innerHTML = "";
     dbState.enderecos.forEach(end => {
-        const volsAqui = dbState.volumes.filter(v => v.enderecoId === end.id && v.quantidade > 0);
-        const div = document.createElement("div");
-        div.className = "card-endereco";
-        div.innerHTML = `
-            <div class="card-end-header">
-                <span>RUA ${end.rua} - MOD ${end.modulo}</span>
-                <i class="fas fa-trash" onclick="window.deletarLocal('${end.id}')" style="cursor:pointer; opacity:0.7;"></i>
-            </div>
-            <div class="card-end-body">
-                ${volsAqui.map(v => {
-                    const prod = dbState.produtos[v.produtoId] || {forn: '---'};
-                    return `
-                    <div class="vol-item">
-                        <div class="vol-item-forn">${prod.forn}</div>
-                        <div class="vol-item-desc">${v.quantidade}x ${v.descricao}</div>
-                        <div style="margin-top:8px; display:flex; gap:5px;">
-                            <button onclick="window.abrirMover('${v.id}')" style="flex:1; font-size:9px; cursor:pointer;">MOVER</button>
-                            <button onclick="window.darSaida('${v.id}')" style="flex:1; font-size:9px; color:var(--danger); cursor:pointer;">SAÍDA</button>
+        const vols = dbState.volumes.filter(v => v.enderecoId === end.id && v.quantidade > 0);
+        grid.innerHTML += `
+            <div style="background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: #004a99; color: white; padding: 8px 12px; font-weight: bold; display: flex; justify-content: space-between;">
+                    <span>RUA ${end.rua} - MOD ${end.modulo}</span>
+                    <i class="fas fa-trash" onclick="deletarLocal('${end.id}')" style="cursor:pointer; font-size: 12px; opacity: 0.7;"></i>
+                </div>
+                <div style="padding: 10px; min-height: 50px;">
+                    ${vols.map(v => `
+                        <div style="background: #f8f9fa; border-bottom: 1px solid #eee; padding: 5px; margin-bottom: 5px;">
+                            <div style="font-size: 10px; color: #004a99; font-weight: bold;">${dbState.produtos[v.produtoId]?.forn || ''}</div>
+                            <div style="font-size: 12px;"><b>${v.quantidade}x</b> ${v.descricao}</div>
+                            <div style="display: flex; gap: 5px; margin-top: 5px;">
+                                <button onclick="abrirMover('${v.id}')" style="flex: 1; font-size: 9px; cursor: pointer;">MOVER</button>
+                                <button onclick="darSaida('${v.id}')" style="flex: 1; font-size: 9px; color: red; cursor: pointer;">SAÍDA</button>
+                            </div>
                         </div>
-                    </div>`;
-                }).join('') || '<div style="color:#ccc; font-size:11px; text-align:center;">Vazio</div>'}
+                    `).join('') || '<div style="color: #ccc; font-size: 11px; text-align: center; margin-top: 10px;">Vazio</div>'}
+                </div>
             </div>
         `;
-        grid.appendChild(div);
     });
 }
 
-// --- FUNÇÕES DE MOVIMENTAÇÃO (WMS) ---
-
+// Lógica de Movimentação (WMS)
 window.abrirMover = (volId) => {
     const vol = dbState.volumes.find(v => v.id === volId);
-    document.getElementById("modalTitle").innerText = "Movimentar Produto";
-    document.getElementById("modalBody").innerHTML = `
-        <p style="font-size:13px;"><b>Item:</b> ${vol.descricao}</p>
-        <div class="field-group">
-            <label>QUANTIDADE A MOVER (MAX: ${vol.quantidade})</label>
-            <input type="number" id="qtdMover" value="${vol.quantidade}" max="${vol.quantidade}" min="1">
-        </div>
-        <div class="field-group" style="margin-top:10px;">
-            <label>DESTINO</label>
-            <select id="destinoMover" style="padding:8px; border-radius:4px;">
-                ${dbState.enderecos.map(e => `<option value="${e.id}">RUA ${e.rua} - MOD ${e.modulo}</option>`).join('')}
-            </select>
-        </div>
-    `;
-    document.getElementById("modalMaster").style.display = "flex";
-    document.getElementById("btnConfirmar").onclick = () => processarMover(volId, document.getElementById("destinoMover").value, parseInt(document.getElementById("qtdMover").value));
+    const qtd = prompt(`Mover ${vol.descricao}\nQuantidade disponível: ${vol.quantidade}\nDigite quanto deseja mover:`, vol.quantidade);
+    
+    if (qtd && parseInt(qtd) > 0) {
+        const valor = parseInt(qtd);
+        if (valor > vol.quantidade) return alert("Quantidade indisponível!");
+        
+        const destino = prompt("Para qual RUA e MÓDULO?\nExemplo: A-01");
+        if (destino) {
+            const [r, m] = destino.split("-");
+            const local = dbState.enderecos.find(e => e.rua === r.toUpperCase() && e.modulo === m);
+            
+            if (local) {
+                executarMover(volId, local.id, valor);
+            } else {
+                alert("Endereço não encontrado! Crie o endereço primeiro.");
+            }
+        }
+    }
 };
 
-async function processarMover(volIdOrigem, endIdDestino, qtd) {
+async function executarMover(volIdOrigem, endIdDestino, qtd) {
     const volOrigem = dbState.volumes.find(v => v.id === volIdOrigem);
-    
-    // Agrupamento: Verifica se já existe o mesmo produto no endereço de destino
-    const volDestino = dbState.volumes.find(v => v.enderecoId === endIdDestino && v.produtoId === volOrigem.produtoId && v.descricao === volOrigem.descricao);
+    const volNoDestino = dbState.volumes.find(v => v.enderecoId === endIdDestino && v.produtoId === volOrigem.produtoId && v.descricao === volOrigem.descricao);
 
     if (qtd >= volOrigem.quantidade) {
-        // Move o lote inteiro
-        if (volDestino) {
-            await updateDoc(doc(db, "volumes", volDestino.id), { quantidade: increment(volOrigem.quantidade) });
+        if (volNoDestino) {
+            await updateDoc(doc(db, "volumes", volNoDestino.id), { quantidade: increment(volOrigem.quantidade) });
             await deleteDoc(doc(db, "volumes", volIdOrigem));
         } else {
             await updateDoc(doc(db, "volumes", volIdOrigem), { enderecoId: endIdDestino });
         }
     } else {
-        // Move parte do lote (Cria/Soma no destino e subtrai da origem)
         await updateDoc(doc(db, "volumes", volIdOrigem), { quantidade: increment(-qtd) });
-        if (volDestino) {
-            await updateDoc(doc(db, "volumes", volDestino.id), { quantidade: increment(qtd) });
+        if (volNoDestino) {
+            await updateDoc(doc(db, "volumes", volNoDestino.id), { quantidade: increment(qtd) });
         } else {
             await addDoc(collection(db, "volumes"), {
                 produtoId: volOrigem.produtoId,
@@ -138,36 +131,26 @@ async function processarMover(volIdOrigem, endIdDestino, qtd) {
             });
         }
     }
-    fecharModal();
-    loadAll();
+    syncUI();
 }
 
 window.darSaida = async (volId) => {
     const vol = dbState.volumes.find(v => v.id === volId);
-    const qtd = prompt(`Baixa de estoque em: ${vol.descricao}\nQuantas unidades saíram?`, "1");
-    if(qtd && parseInt(qtd) > 0) {
-        await updateDoc(doc(db, "volumes", volId), { quantidade: increment(-parseInt(qtd)) });
-        loadAll();
+    const q = prompt(`Saída de ${vol.descricao}. Qtd:`, "1");
+    if(q && parseInt(q) > 0) {
+        await updateDoc(doc(db, "volumes", volId), { quantidade: increment(-parseInt(q)) });
+        syncUI();
     }
 };
 
-window.criarLocal = async () => {
+document.getElementById("btnCriarEndereco").onclick = async () => {
     const r = document.getElementById("addRua").value.toUpperCase();
     const m = document.getElementById("addModulo").value;
     const n = document.getElementById("addNivel").value;
-    if(!r || !m) return alert("Rua e Módulo são obrigatórios!");
-    await addDoc(collection(db, "enderecos"), { rua: r, modulo: m, nivel: n, data: serverTimestamp() });
-    loadAll();
-};
-
-window.deletarLocal = async (id) => {
-    if(confirm("Deseja apagar este local? Produtos aqui voltarão para 'Não Endereçados'.")){
-        const afetados = dbState.volumes.filter(v => v.enderecoId === id);
-        for(let v of afetados) { await updateDoc(doc(db, "volumes", v.id), { enderecoId: "" }); }
-        await deleteDoc(doc(db, "enderecos", id));
-        loadAll();
+    if(r && m) {
+        await addDoc(collection(db, "enderecos"), { rua: r, modulo: m, nivel: n, data: serverTimestamp() });
+        syncUI();
     }
 };
 
-window.fecharModal = () => document.getElementById("modalMaster").style.display = "none";
 window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
