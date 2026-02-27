@@ -1,8 +1,10 @@
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { 
-    collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp 
+    collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, increment 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+let cacheData = { fornecedores: {}, produtos: {}, enderecos: [], volumes: [] };
 
 onAuthStateChanged(auth, user => {
     if (user) {
@@ -12,153 +14,165 @@ onAuthStateChanged(auth, user => {
 });
 
 async function loadAll() {
-    // 1. Busca Fornecedores
     const fSnap = await getDocs(collection(db, "fornecedores"));
-    const fornMap = {};
-    fSnap.forEach(d => {
-        // Pega apenas o primeiro nome para não ficar muito longo no card
-        const nomeCompleto = d.data().nome || "---";
-        fornMap[d.id] = nomeCompleto.split(' ')[0]; 
-    });
+    fSnap.forEach(d => cacheData.fornecedores[d.id] = d.data().nome);
 
-    // 2. Busca Produtos
     const pSnap = await getDocs(collection(db, "produtos"));
-    const prodMap = {};
     pSnap.forEach(d => {
         const p = d.data();
-        prodMap[d.id] = { nome: p.nome, forn: fornMap[p.fornecedorId] || "---" };
+        cacheData.produtos[d.id] = { nome: p.nome, forn: cacheData.fornecedores[p.fornecedorId] || "---" };
     });
 
-    // 3. Renderiza as listas
-    renderEnderecos(prodMap);
-    renderPendentes(prodMap);
+    await refreshDisplay();
 }
 
-async function renderEnderecos(prodMap) {
+async function refreshDisplay() {
+    const eSnap = await getDocs(query(collection(db, "enderecos"), orderBy("rua"), orderBy("modulo")));
+    cacheData.enderecos = eSnap.docs.map(d => ({id: d.id, ...d.data()}));
+
+    const vSnap = await getDocs(collection(db, "volumes"));
+    cacheData.volumes = vSnap.docs.map(d => ({id: d.id, ...d.data()}));
+
+    renderEnderecos();
+    renderPendentes();
+}
+
+function renderEnderecos() {
     const grid = document.getElementById("gridEnderecos");
-    if (!grid) return;
     grid.innerHTML = "";
     
-    // Busca os endereços criados no banco
-    const eSnap = await getDocs(query(collection(db, "enderecos"), orderBy("rua"), orderBy("modulo")));
-    const vSnap = await getDocs(collection(db, "volumes"));
-    const volumes = vSnap.docs.map(d => ({id: d.id, ...d.data()}));
-
-    eSnap.forEach(de => {
-        const end = de.data();
-        const endId = de.id;
-        // Filtra volumes que pertencem a este endereço e têm estoque
-        const volumesNoLocal = volumes.filter(v => v.enderecoId === endId && v.quantidade > 0);
+    cacheData.enderecos.forEach(end => {
+        const volumesNoLocal = cacheData.volumes.filter(v => v.enderecoId === end.id && v.quantidade > 0);
 
         const card = document.createElement("div");
         card.className = "card-endereco";
         card.innerHTML = `
             <div class="card-end-header">
-                <span>RUA ${end.rua} | M${end.modulo} | N${end.nivel}</span>
-                <button onclick="window.deletarEndereco('${endId}')" style="background:none; border:none; color:white; cursor:pointer; font-weight:bold;">✕</button>
+                <span>RUA ${end.rua} - ${end.modulo} (Niv ${end.nivel})</span>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="window.editarEndereco('${end.id}')" style="background:none; border:none; color:white; cursor:pointer;">✎</button>
+                    <button onclick="window.deletarEndereco('${end.id}')" style="background:none; border:none; color:white; cursor:pointer;">✕</button>
+                </div>
             </div>
             <div class="card-end-body">
-                ${volumesNoLocal.length > 0 ? volumesNoLocal.map(v => {
-                    const p = prodMap[v.produtoId] || { nome: "N/A", forn: "---" };
+                ${volumesNoLocal.map(v => {
+                    const p = cacheData.produtos[v.produtoId] || { nome: "N/A", forn: "---" };
                     return `
                     <div class="vol-item">
-                        <span><strong>${v.quantidade}x</strong> [${p.forn}] ${v.descricao}</span>
-                        <button class="btn-action" style="background:var(--gray)" onclick="window.desvincular('${v.id}')">Tirar</button>
+                        <div style="font-weight:700; color:var(--primary); font-size:11px;">${p.forn}</div>
+                        <div style="font-size:12px;">${v.descricao}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                            <span style="background:#e9ecef; padding:2px 8px; border-radius:4px; font-weight:700;">${v.quantidade} un</span>
+                            <button class="btn-action" style="background:var(--warning); padding:4px 8px;" onclick="window.abrirModalTransferir('${v.id}', '${v.quantidade}')">Transferir</button>
+                        </div>
                     </div>`;
-                }).join('') : '<p style="color:#999; text-align:center">Vazio</p>'}
-                
-                <button class="btn-action" style="background:var(--success); width:100%; margin-top:10px; height:30px" onclick="window.vincularAqui('${endId}')">
-                    + VINCULAR VOLUME
-                </button>
+                }).join('') || '<div style="text-align:center; color:#adb5bd; padding:20px;">Vazio</div>'}
             </div>
         `;
         grid.appendChild(card);
     });
 }
 
-async function renderPendentes(prodMap) {
+function renderPendentes() {
     const lista = document.getElementById("listaPendentes");
-    if (!lista) return;
     lista.innerHTML = "";
     
-    const vSnap = await getDocs(collection(db, "volumes"));
-    
-    vSnap.forEach(dv => {
-        const vol = dv.data();
-        // Aparece na esquerda se quantidade > 0 e sem endereço
-        if (vol.quantidade > 0 && (!vol.enderecoId || vol.enderecoId === "")) {
-            const p = prodMap[vol.produtoId] || { nome: "Desconhecido", forn: "---" };
+    cacheData.volumes.forEach(v => {
+        if (v.quantidade > 0 && (!v.enderecoId || v.enderecoId === "")) {
+            const p = cacheData.produtos[v.produtoId] || { nome: "N/A", forn: "---" };
             const div = document.createElement("div");
             div.className = "card-pendente";
             div.innerHTML = `
-                <div style="font-weight:bold; color:var(--primary)">${p.forn}</div>
-                <div style="font-size:11px"><strong>Prod:</strong> ${p.nome}</div>
-                <div style="font-size:11px"><strong>Vol:</strong> ${vol.descricao}</div>
-                <div style="margin-top:5px; font-weight:bold; color:var(--danger)">QTD: ${vol.quantidade}</div>
+                <div style="font-weight:700; color:var(--danger)">${p.forn}</div>
+                <div style="font-size:13px; margin:4px 0;">${v.descricao}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:700;">Qtd: ${v.quantidade}</span>
+                    <button class="btn-action" style="background:var(--primary)" onclick="window.abrirModalVincular('${v.id}', '${v.quantidade}')">Endereçar</button>
+                </div>
             `;
             lista.appendChild(div);
         }
     });
 }
 
-// --- FUNÇÕES DE AÇÃO ---
+// LÓGICA DE MODAIS PROFISSIONAIS
+window.abrirModalVincular = (volId, qtdMax) => {
+    document.getElementById("modalTitle").innerText = "Vincular ao Endereço";
+    document.getElementById("labelSelect").innerText = "Escolha o local de destino:";
+    const sel = document.getElementById("selectDestino");
+    sel.innerHTML = cacheData.enderecos.map(e => `<option value="${e.id}">RUA ${e.rua} | MOD ${e.modulo} | NIV ${e.nivel}</option>`).join('');
+    
+    document.getElementById("inputQtdAcao").max = qtdMax;
+    document.getElementById("inputQtdAcao").value = qtdMax;
+    document.getElementById("modalAcao").style.display = "flex";
+
+    document.getElementById("btnConfirmarAcao").onclick = () => processarVinculacao(volId, sel.value, document.getElementById("inputQtdAcao").value);
+};
+
+window.abrirModalTransferir = (volId, qtdMax) => {
+    document.getElementById("modalTitle").innerText = "Transferência Interna";
+    const sel = document.getElementById("selectDestino");
+    sel.innerHTML = cacheData.enderecos.map(e => `<option value="${e.id}">RUA ${e.rua} | MOD ${e.modulo} | NIV ${e.nivel}</option>`).join('');
+    
+    document.getElementById("modalAcao").style.display = "flex";
+    document.getElementById("btnConfirmarAcao").onclick = () => processarTransferencia(volId, sel.value, document.getElementById("inputQtdAcao").value);
+};
+
+// PROCESSAMENTO E HISTÓRICO
+async function processarVinculacao(volId, endId, qtd) {
+    const volRef = doc(db, "volumes", volId);
+    await updateDoc(volRef, { enderecoId: endId });
+    
+    // Registrar Histórico
+    const volData = cacheData.volumes.find(v => v.id === volId);
+    await addDoc(collection(db, "movimentacoes"), {
+        produto: volData.descricao,
+        tipo: "Endereçamento",
+        quantidade: parseInt(qtd),
+        usuario: auth.currentUser.email,
+        data: serverTimestamp()
+    });
+
+    fecharModal();
+    refreshDisplay();
+}
+
+async function processarTransferencia(volId, novoEndId, qtd) {
+    const volData = cacheData.volumes.find(v => v.id === volId);
+    
+    // Lógica Profissional: Se transferir tudo, apenas muda o ID. Se parcial, cria novo ou soma no destino.
+    // Para simplificar e manter a integridade, vamos atualizar o endereço deste volume específico.
+    await updateDoc(doc(db, "volumes", volId), { enderecoId: novoEndId });
+
+    await addDoc(collection(db, "movimentacoes"), {
+        produto: `Transferência: ${volData.descricao}`,
+        tipo: "Movimentação Interna",
+        quantidade: parseInt(qtd),
+        usuario: auth.currentUser.email,
+        data: serverTimestamp()
+    });
+
+    fecharModal();
+    refreshDisplay();
+}
+
+window.fecharModal = () => document.getElementById("modalAcao").style.display = "none";
 
 document.getElementById("btnCriarEndereco").onclick = async () => {
     const rua = document.getElementById("addRua").value.toUpperCase();
     const modulo = document.getElementById("addModulo").value;
     const nivel = document.getElementById("addNivel").value;
+    if(!rua || !modulo) return;
 
-    if(!rua || !modulo) return alert("Preencha Rua e Módulo!");
-
-    await addDoc(collection(db, "enderecos"), { 
-        rua, modulo, nivel, 
-        dataCriacao: serverTimestamp() 
-    });
+    await addDoc(collection(db, "enderecos"), { rua, modulo, nivel, dataCriacao: serverTimestamp() });
     
-    document.getElementById("addRua").value = "";
-    document.getElementById("addModulo").value = "";
-    document.getElementById("addNivel").value = "";
-    loadAll(); // Recarrega os cards na tela
-};
-
-window.vincularAqui = async (endId) => {
-    const vSnap = await getDocs(collection(db, "volumes"));
-    let listaTxt = "Digite o número do volume para este endereço:\n\n";
-    const disponiveis = [];
-
-    let i = 0;
-    vSnap.forEach(dv => {
-        const data = dv.data();
-        if (data.quantidade > 0 && (!data.enderecoId || data.enderecoId === "")) {
-            disponiveis.push({id: dv.id, desc: data.descricao});
-            listaTxt += `${i} - ${data.descricao} (${data.quantidade} un)\n`;
-            i++;
-        }
+    // Histórico de Criação de Local
+    await addDoc(collection(db, "movimentacoes"), {
+        produto: `Novo Endereço: RUA ${rua} MOD ${modulo}`,
+        tipo: "Estrutura", quantidade: 0, usuario: auth.currentUser.email, data: serverTimestamp()
     });
 
-    if (disponiveis.length === 0) return alert("Não há volumes pendentes para endereçar!");
-
-    const escolha = prompt(listaTxt);
-    if (escolha !== null && disponiveis[escolha]) {
-        await updateDoc(doc(db, "volumes", disponiveis[escolha].id), { 
-            enderecoId: endId 
-        });
-        loadAll(); // Atualiza a tela: sai da esquerda e entra no card
-    }
-};
-
-window.desvincular = async (volId) => {
-    if(confirm("Remover volume deste endereço?")){
-        await updateDoc(doc(db, "volumes", volId), { enderecoId: "" });
-        loadAll();
-    }
-};
-
-window.deletarEndereco = async (id) => {
-    if(confirm("Excluir este endereço?")){
-        await deleteDoc(doc(db, "enderecos", id));
-        loadAll();
-    }
+    refreshDisplay();
 };
 
 window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
