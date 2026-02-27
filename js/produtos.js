@@ -44,88 +44,75 @@ async function refresh() {
         const pId = docProd.id;
         const pVols = volumes.filter(v => v.produtoId === pId);
 
-        // Agrupamento por descrição do volume para não repetir linhas
         const grupos = {};
         pVols.forEach(v => {
-            if (!grupos[v.descricao]) {
-                grupos[v.descricao] = { total: 0, exemplares: [] };
-            }
+            if (!grupos[v.descricao]) grupos[v.descricao] = { total: 0, ids: [] };
             grupos[v.descricao].total += v.quantidade;
-            grupos[v.descricao].exemplares.push({id: v.id, qtd: v.quantidade});
+            grupos[v.descricao].ids.push(v.id);
         });
 
-        // Linha do Produto
+        // LINHA DO PRODUTO (BOTÕES ORIGINAIS RESTAURADOS)
         tbody.innerHTML += `
-            <tr class="row-prod" data-txt="${p.nome.toLowerCase()} ${p.codigo.toLowerCase()} ${fornecedoresCache[p.fornecedorId]?.toLowerCase()}">
+            <tr class="row-prod" data-txt="${p.nome.toLowerCase()} ${p.codigo.toLowerCase()}">
                 <td style="text-align:center;"><button onclick="toggleVols('${pId}')" style="cursor:pointer; border:none; background:none; font-weight:bold;">+</button></td>
                 <td>${fornecedoresCache[p.fornecedorId] || "---"}</td>
                 <td>${p.codigo}</td>
                 <td><b>${p.nome}</b></td>
-                <td><button onclick="addVolume('${pId}', '${p.nome}')" style="font-size:10px;">+ Vol</button></td>
+                <td>
+                    <button class="btn-action" onclick="addVolume('${pId}', '${p.nome}')" style="background:var(--success); color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size:11px;">+ VOL</button>
+                    <button class="btn-action" onclick="deletar('${pId}', 'produtos', '${p.nome}')" style="background:var(--danger); color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size:11px;">EXCLUIR</button>
+                </td>
             </tr>
         `;
 
-        // Linhas dos Volumes Agrupados
         Object.keys(grupos).forEach(desc => {
-            if(grupos[desc].total >= 0) {
-                tbody.innerHTML += `
-                    <tr class="row-vol child-${pId}" style="display:none; background:#f9f9f9;">
-                        <td></td>
-                        <td colspan="2" style="text-align:right; color:#666; font-size:11px;">Volume:</td>
-                        <td style="font-size:12px;">${desc}</td>
-                        <td style="display:flex; align-items:center; gap:10px;">
-                            <b style="font-size:14px; color:var(--primary);">${grupos[desc].total}</b>
-                            <button onclick="entradaMercadoria('${pId}', '${desc}')" style="background:var(--success); color:white; border:none; border-radius:3px; cursor:pointer; padding:2px 8px;">+</button>
-                        </td>
-                    </tr>
-                `;
-            }
+            tbody.innerHTML += `
+                <tr class="row-vol child-${pId}" style="display:none; background:#f9f9f9;">
+                    <td></td>
+                    <td colspan="2" style="text-align:right; color:#666; font-size:11px;">Volume:</td>
+                    <td style="font-size:12px;">${desc}</td>
+                    <td style="display:flex; align-items:center; gap:10px;">
+                        <b style="font-size:14px; color:var(--primary);">${grupos[desc].total}</b>
+                        <button onclick="entradaMercadoria('${pId}', '${desc}')" style="background:var(--primary); color:white; border:none; border-radius:3px; cursor:pointer; padding:2px 8px;">ENTRADA (+)</button>
+                    </td>
+                </tr>
+            `;
         });
     });
 }
 
-// Função para dar entrada de + unidades (Cria lote sem endereço para forçar endereçamento)
+// Lógica de Entrada (Sempre cria novo lote para endereçamento)
 window.entradaMercadoria = async (pId, desc) => {
-    const qtdStr = prompt(`Entrada de mercadoria para: ${desc}\nQuantas unidades novas chegaram?`, "1");
+    const qtdStr = prompt(`Quantas unidades novas de "${desc}" chegaram?`, "1");
     const qtd = parseInt(qtdStr);
-    
     if (qtd > 0) {
         await addDoc(collection(db, "volumes"), {
             produtoId: pId,
             descricao: desc,
             quantidade: qtd,
-            enderecoId: "" // Fica vazio para aparecer no Mapa de Endereçamento
-        });
-
-        await addDoc(collection(db, "movimentacoes"), {
-            produto: `Entrada: ${desc}`,
-            tipo: "Entrada",
-            quantidade: qtd,
-            usuario: auth.currentUser.email,
-            data: serverTimestamp()
-        });
-        refresh();
-    }
-};
-
-window.addVolume = async (pId, pNome) => {
-    const d = prompt(`Nome do novo volume para ${pNome}: (Ex: Lateral Direita)`);
-    if(d) {
-        await addDoc(collection(db, "volumes"), { 
-            produtoId: pId, 
-            descricao: d, 
-            quantidade: 0, 
             enderecoId: "" 
         });
         refresh();
     }
 };
 
+window.addVolume = async (pId, pNome) => {
+    const d = prompt(`Nome do volume (Ex: Lateral):`);
+    if(d) {
+        await addDoc(collection(db, "volumes"), { produtoId: pId, descricao: d, quantidade: 0, enderecoId: "" });
+        refresh();
+    }
+};
+
+window.deletar = async (id, tabela, desc) => {
+    if(confirm(`Excluir "${desc}"?`)) {
+        await deleteDoc(doc(db, tabela, id));
+        refresh();
+    }
+};
+
 window.toggleVols = (pId) => {
-    document.querySelectorAll(`.child-${pId}`).forEach(el => {
-        el.style.display = el.style.display === "none" ? "table-row" : "none";
-    });
+    document.querySelectorAll(`.child-${pId}`).forEach(el => el.style.display = el.style.display === "none" ? "table-row" : "none");
 };
 
 window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
-window.refresh = refresh;
