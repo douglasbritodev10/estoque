@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Profissional - Simonetti</title>
+    <title>Simonetti - Gestão de Estoque</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="login-container">
-        <img src="favicon.ico.jpg" width="100" alt="Móveis Simonetti"> 
-        <h2>Gestão de Estoque</h2>
+        <h2>Simonetti</h2>
+        <span class="subtitle">Gestão de Estoque e Logística</span>
         
         <div class="input-group">
             <input type="email" id="email" placeholder="E-mail corporativo" required>
@@ -19,56 +19,17 @@
             <input type="password" id="password" placeholder="Sua senha" required>
         </div>
         
-        <button id="btnLogin">ENTRAR NO SISTEMA</button>
+        <button id="btnLogin">ACESSAR SISTEMA</button>
         
         <p id="error"></p>
 
         <div class="footer-text">
-            &copy; 2024 Móveis Simonetti - Acesso Restrito
+            &copy; 2024 Móveis Simonetti<br>Acesso restrito a colaboradores.
         </div>
     </div>
 
     <script type="module">
-        import { auth, db } from "./js/firebase-config.js";
-        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-        const btn = document.getElementById("btnLogin");
-        const errorMsg = document.getElementById("error");
-
-        btn.onclick = async () => {
-            const email = document.getElementById("email").value;
-            const pass = document.getElementById("password").value;
-            
-            if(!email || !pass) {
-                errorMsg.innerText = "Preencha todos os campos.";
-                errorMsg.style.color = "var(--error)";
-                return;
-            }
-
-            btn.innerText = "CARREGANDO...";
-            btn.disabled = true;
-
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-                const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-                
-                if (userDoc.exists() && userDoc.data().isFirstLogin) {
-                    window.location.href = "first_login.html";
-                } else {
-                    window.location.href = "dashboard.html";
-                }
-            } catch (e) {
-                errorMsg.innerText = "E-mail ou senha incorretos.";
-                errorMsg.style.color = "var(--error)";
-                btn.innerText = "ENTRAR NO SISTEMA";
-                btn.disabled = false;
-            }
-        };
-
-        document.addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') btn.click();
-        });
+        // ... (seu código de login do Firebase)
     </script>
 </body>
 </html>
