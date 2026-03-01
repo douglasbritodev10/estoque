@@ -33,27 +33,25 @@
             align-items: center;
             padding: 15px 30px;
             background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(15px);
+            backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--glass-border);
         }
 
-        .logo-area { font-weight: bold; letter-spacing: 1px; }
+        .logo h2 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
+        .user-info { display: flex; align-items: center; gap: 15px; }
+
+        /* Botão de Gestão de Usuários (Configurações) */
+        .btn-gestao {
+            color: white;
+            font-size: 1.3rem;
+            text-decoration: none;
+            transition: transform 0.3s;
+            display: none; /* Escondido por padrão */
         }
+        .btn-gestao:hover { transform: rotate(45deg); color: #f1c40f; }
 
-        .user-badge {
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        #btnLogout {
+        .logout-btn {
             background: var(--danger);
             color: white;
             border: none;
@@ -61,25 +59,28 @@
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             transition: 0.3s;
-            text-decoration: none;
         }
+        .logout-btn:hover { background: #cc0000; }
 
         /* Grid de Cards */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
-            padding: 40px;
+        .container {
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 50px auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
         }
 
-        .glass-card {
+        .card {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
-            border-radius: 20px;
+            border-radius: 15px;
             padding: 30px;
             text-align: center;
             text-decoration: none;
@@ -88,145 +89,149 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            gap: 15px;
             position: relative;
             overflow: hidden;
         }
 
-        .glass-card:hover:not(.locked) {
-            transform: translateY(-5px);
+        .card:hover {
+            transform: translateY(-10px);
             background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
         }
 
-        /* ESTILO DO CARD BLOQUEADO */
-        .glass-card.locked {
+        .card i { font-size: 3rem; margin-bottom: 10px; }
+        .card h3 { margin: 0; font-size: 1.4rem; }
+        .card p { margin: 0; font-size: 0.9rem; opacity: 0.8; }
+
+        /* Estilo para Cards Bloqueados */
+        .card.locked {
             opacity: 0.5;
             cursor: not-allowed;
-            filter: grayscale(0.8);
+            filter: grayscale(1);
         }
+        .card.locked:hover { transform: none; }
 
-        .lock-icon {
-            display: none;
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 1.2rem;
-            color: #ffab00;
-        }
-
-        .glass-card.locked .lock-icon { display: block; }
-        .glass-card.locked .card-action { background: #555; }
-
-        .card-icon { font-size: 3rem; margin-bottom: 15px; }
-        .card-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; line-height: 1.2; }
-        
         .card-action {
-            font-size: 0.75rem;
-            background: rgba(255,255,255,0.2);
-            padding: 5px 15px;
-            border-radius: 20px;
             margin-top: 10px;
-            text-transform: uppercase;
+            font-size: 0.8rem;
             font-weight: bold;
+            text-transform: uppercase;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+            .top-bar { padding: 15px; }
         }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <div class="logo-area">PAGINA INICIAL</div>
+        <div class="logo">
+            <h2><i class="fas fa-warehouse"></i> SIMONETTI</h2>
+        </div>
+        
         <div class="user-info">
-            <div class="user-badge" id="userGreeting">
+            <div id="userDisplay" style="font-weight: bold;">
                 <i class="fas fa-user-circle"></i> Carregando...
             </div>
-            <button id="btnLogout">SAIR</button>
+
+            <a href="usuarios.html" id="btnGestao" class="btn-gestao" title="Gestão de Usuários">
+                <i class="fas fa-users-cog"></i>
+            </a>
+
+            <button class="logout-btn" id="btnLogout">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
         </div>
     </div>
 
-    <div class="dashboard-grid">
-        <a href="produtos.html" id="cardProdutos" class="glass-card">
-            <i class="fas fa-lock lock-icon"></i>
-            <div class="card-icon">📦</div>
-            <div class="card-title">Gestão de<br>Produtos</div>
-            <div class="card-action">Acessar</div>
+    <div class="container">
+        <a href="estoque.html" class="card" id="cardEstoque">
+            <i class="fas fa-boxes" style="color: #00c853;"></i>
+            <h3>Estoque Médio</h3>
+            <p>Gerenciar endereçamentos e saldos.</p>
+            <span class="card-action">Acessar</span>
         </a>
 
-        <a href="estoque.html" id="cardEstoque" class="glass-card">
-            <i class="fas fa-lock lock-icon"></i>
-            <div class="card-icon">📊</div>
-            <div class="card-title">Mapa de<br>Endereçamento</div>
-            <div class="card-action">Acessar</div>
+        <a href="produtos.html" class="card" id="cardProdutos">
+            <i class="fas fa-tags" style="color: #ffab00;"></i>
+            <h3>Produtos / SKUs</h3>
+            <p>Cadastro de master e volumes.</p>
+            <span class="card-action">Acessar</span>
         </a>
-        
-        <a href="fornecedores.html" id="cardFornecedores" class="glass-card">
-            <i class="fas fa-lock lock-icon"></i>
-            <div class="card-icon">🏭</div>
-            <div class="card-title">Cadastrar<br>Fornecedores</div>
-            <div class="card-action">Acessar</div>
-        </a>        
 
-        <a href="historico.html" id="cardHistorico" class="glass-card">
-            <i class="fas fa-lock lock-icon"></i>
-            <div class="card-icon">📜</div>
-            <div class="card-title">Histórico de<br>Movimentação</div>
-            <div class="card-action">Acessar</div>
+        <a href="fornecedores.html" class="card" id="cardFornecedores">
+            <i class="fas fa-truck-loading" style="color: #17a2b8;"></i>
+            <h3>Fornecedores</h3>
+            <p>Gestão de parceiros e fábricas.</p>
+            <span class="card-action">Acessar</span>
+        </a>
+
+        <a href="historico.html" class="card" id="cardHistorico">
+            <i class="fas fa-history" style="color: #ff4d4d;"></i>
+            <h3>Histórico</h3>
+            <p>Logs de movimentações e auditoria.</p>
+            <span class="card-action">Acessar</span>
         </a>
     </div>
 
     <script type="module">
-        import { auth, db } from "./js/firebase-config.js";
+        import { db, auth } from "./js/firebase-config.js";
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, async user => {
             if (user) {
                 try {
-                    const userRef = doc(db, "users", user.uid);
-                    const userSnap = await getDoc(userRef);
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
                     
-                    let userRole = "leitor";
-                    let userName = user.email.split('@')[0].toUpperCase();
-
-                    if (userSnap.exists()) {
-                        const userData = userSnap.data();
-                        userRole = (userData.role || "leitor").toLowerCase();
-                        userName = (userData.nomeCompleto || userName).toUpperCase();
+                    if (!userDoc.exists()) {
+                        window.location.href = "first_login.html";
+                        return;
                     }
 
-                    document.getElementById("userGreeting").innerHTML = `<i class="fas fa-user-circle"></i> ${userName} (${userRole.toUpperCase()})`;
+                    const userData = userDoc.data();
+                    const userRole = (userData.role || "leitor").toLowerCase();
+                    const nomeComp = userData.nomeCompleto || "Usuário";
 
-                    // Lógica de Bloqueio Visual
+                    // 1. Exibir Nome
+                    document.getElementById("userDisplay").innerHTML = `<i class="fas fa-user-circle"></i> ${nomeComp}`;
+
+                    // 2. Liberar Botão de Gestão de Usuários se for ADMIN
+                    if (userRole === "admin") {
+                        document.getElementById("btnGestao").style.display = "inline-block";
+                    }
+
+                    // 3. Lógica de Bloqueio de Cards conforme Role
                     const cards = {
-                        produtos: document.getElementById("cardProdutos"),
-                        estoque: document.getElementById("cardEstoque"),
                         fornecedores: document.getElementById("cardFornecedores"),
                         historico: document.getElementById("cardHistorico")
                     };
 
                     const bloquear = (card) => {
+                        if(!card) return;
                         card.classList.add("locked");
                         card.onclick = (e) => {
-                            e.preventDefault(); // Impede de navegar
+                            e.preventDefault();
                             alert("Seu nível de acesso não permite entrar neste módulo.");
                         };
                         const actionLabel = card.querySelector(".card-action");
                         if(actionLabel) actionLabel.innerText = "Bloqueado";
                     };
 
-                    // Aplicando as regras
-                    if (userRole === "leitor") {
-                        // Leitor: Bloqueia Fornecedores e Histórico
-                        bloquear(cards.fornecedores);
-                        bloquear(cards.historico);
-                    } 
-                    else if (userRole === "operador") {
-                        // Operador: Bloqueia Fornecedores e Histórico
+                    if (userRole === "leitor" || userRole === "operador") {
+                        // Bloqueia Fornecedores e Histórico para quem não é Admin
                         bloquear(cards.fornecedores);
                         bloquear(cards.historico);
                     }
-                    // Admin: Não bloqueia nada
 
                 } catch (error) {
-                    console.error("Erro:", error);
+                    console.error("Erro ao carregar perfil:", error);
                 }
             } else {
                 window.location.href = "index.html";
@@ -234,7 +239,9 @@
         });
 
         document.getElementById("btnLogout").onclick = () => {
-            auth.signOut().then(() => { window.location.href = "index.html"; });
+            if(confirm("Deseja realmente sair?")) {
+                auth.signOut().then(() => { window.location.href = "index.html"; });
+            }
         };
     </script>
 </body>
