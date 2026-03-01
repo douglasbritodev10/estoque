@@ -6,46 +6,43 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { 
-            --primary: #004a99; 
-            --success: #00c853; 
-            --danger: #ff4d4d;
+            --primary: #004a99; --success: #00c853; --danger: #ff4d4d; --warning: #f1c40f;
             --glass: rgba(255, 255, 255, 0.1);
         }
         body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #001f3f 0%, #004a99 100%); color: white; margin: 0; min-height: 100vh; }
-        
         .container { max-width: 900px; margin: 40px auto; padding: 20px; }
         .glass-card { background: var(--glass); backdrop-filter: blur(15px); border-radius: 15px; padding: 25px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { text-align: left; padding: 15px; border-bottom: 2px solid rgba(255,255,255,0.1); opacity: 0.8; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px; border-bottom: 2px solid rgba(255,255,255,0.1); opacity: 0.7; font-size: 12px; }
         td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        .badge { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
         .leitor { background: #6c757d; }
-        .operador { background: #f1c40f; color: #000; }
+        .operador { background: var(--warning); color: #000; }
         .admin { background: var(--danger); }
 
-        .btn-icon { background: rgba(255,255,255,0.1); border: none; color: white; width: 35px; height: 35px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-left: 5px; }
-        .btn-icon:hover { background: var(--primary); transform: scale(1.1); }
-        .btn-up { background: var(--success); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.3s; }
-        .btn-up:hover { filter: brightness(1.2); }
+        .btn-group { display: flex; gap: 8px; justify-content: flex-end; }
+        .btn-action { border: none; color: white; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .btn-edit { background: var(--primary); }
+        .btn-up { background: var(--success); }
+        .btn-down { background: #e67e22; } /* Laranja para rebaixar */
+        .btn-action:hover { transform: translateY(-2px); filter: brightness(1.2); }
 
         /* MODAL */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; color: #333; padding: 30px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
-        .modal-content input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .modal-btns { display: flex; gap: 10px; justify-content: center; }
-        .btn-confirm { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .btn-cancel { background: #eee; color: #333; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; color: #333; padding: 25px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; }
+        .modal-content input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn-confirm { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
     </style>
 </head>
 <body>
     <div class="container">
         <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-            <a href="pagina.html" style="color:white; text-decoration: none; font-weight: bold;"><i class="fas fa-arrow-left"></i> VOLTAR</a>
-            <h2 style="margin:0;"><i class="fas fa-users-cog"></i> Gestão de Níveis</h2>
-            <button onclick="window.sairImediato()" style="background:none; border:none; color:var(--danger); cursor:pointer; font-weight:bold;">
-                <i class="fas fa-power-off"></i> SAIR
+            <a href="pagina.html" style="color:white; text-decoration: none; font-size: 14px;"><i class="fas fa-chevron-left"></i> VOLTAR</a>
+            <h2 style="margin:0; font-weight: 300; letter-spacing: 1px;">Gestão de Acessos</h2>
+            <button onclick="window.sairImediato()" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size: 18px;">
+                <i class="fas fa-power-off"></i>
             </button>
         </div>
 
@@ -54,24 +51,21 @@
                 <thead>
                     <tr>
                         <th>COLABORADOR</th>
-                        <th>NÍVEL ATUAL</th>
-                        <th style="text-align: right;">AÇÕES</th>
+                        <th>NÍVEL</th>
+                        <th style="text-align: right;">AJUSTES</th>
                     </tr>
                 </thead>
-                <tbody id="listaUsuarios">
-                    </tbody>
+                <tbody id="listaUsuarios"></tbody>
             </table>
         </div>
     </div>
 
     <div id="modalNome" class="modal">
         <div class="modal-content">
-            <h3 style="margin:0; color:var(--primary);">Editar Nome</h3>
-            <input type="text" id="inputNome" placeholder="Nome Completo">
-            <div class="modal-btns">
-                <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
-                <button class="btn-confirm" id="btnSalvarNome">Salvar</button>
-            </div>
+            <h3 style="margin:0;">Alterar Nome</h3>
+            <input type="text" id="inputNome">
+            <button class="btn-confirm" id="btnSalvarNome">ATUALIZAR</button>
+            <button onclick="fecharModal()" style="background:none; border:none; margin-top:10px; color:#666; cursor:pointer;">Cancelar</button>
         </div>
     </div>
 
@@ -81,17 +75,14 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
         let adminUid = null;
-        let idSendoEditado = null;
+        let idEdit = null;
 
         onAuthStateChanged(auth, async user => {
             if (user) {
                 const snap = await getDoc(doc(db, "users", user.uid));
                 if (snap.exists() && snap.data().role === "admin") {
-                    adminUid = user.uid;
-                    carregarUsuarios();
-                } else {
-                    window.location.href = "pagina.html";
-                }
+                    adminUid = user.uid; carregarUsuarios();
+                } else { window.location.href = "pagina.html"; }
             } else { window.location.href = "index.html"; }
         });
 
@@ -100,73 +91,54 @@
             const tabela = document.getElementById("listaUsuarios");
             tabela.innerHTML = "";
 
-            querySnapshot.forEach((userDoc) => {
-                const data = userDoc.data();
-                const id = userDoc.id;
-                const role = data.role || "leitor";
+            querySnapshot.forEach((uDoc) => {
+                const d = uDoc.data();
+                const id = uDoc.id;
+                const role = d.role || "leitor";
                 const isSelf = id === adminUid;
-                const isAnotherAdmin = role === "admin" && !isSelf;
+                const targetIsAdmin = role === "admin";
 
-                let acoes = "";
-                if (!isSelf && !isAnotherAdmin) {
-                    // Botão de Editar Nome (Abre Modal)
-                    acoes += `<button class="btn-icon" onclick="window.abrirModalNome('${id}', '${data.nomeCompleto}')" title="Editar Nome"><i class="fas fa-edit"></i></button>`;
+                let botoes = "";
+                // Se NÃO for você mesmo e NÃO for outro admin, libera os controles
+                if (!isSelf && !targetIsAdmin) {
+                    botoes += `<button class="btn-action btn-edit" onclick="window.modalNome('${id}','${d.nomeCompleto}')" title="Editar Nome"><i class="fas fa-pen"></i></button>`;
                     
-                    // Botões de subir nível
-                    if (role === "leitor") {
-                        acoes += `<button class="btn-up" style="margin-left:10px" onclick="window.promover('${id}', 'operador')">Subir p/ Operador</button>`;
-                    }
-                    if (role !== "admin") {
-                        acoes += `<button class="btn-up" style="margin-left:10px; background:var(--danger)" onclick="window.promover('${id}', 'admin')">Tornar Admin</button>`;
+                    // Lógica de subir nível
+                    if (role === "leitor") botoes += `<button class="btn-action btn-up" onclick="window.mudarCargo('${id}','operador')" title="Subir p/ Operador"><i class="fas fa-arrow-up"></i></button>`;
+                    if (role !== "admin") botoes += `<button class="btn-action btn-up" style="background:var(--danger)" onclick="window.mudarCargo('${id}','admin')" title="Tornar Admin"><i class="fas fa-user-shield"></i></button>`;
+                    
+                    // Lógica de baixar nível (Novo pedido!)
+                    if (role === "operador") {
+                        botoes += `<button class="btn-action btn-down" onclick="window.mudarCargo('${id}','leitor')" title="Rebaixar p/ Leitor"><i class="fas fa-arrow-down"></i></button>`;
                     }
                 }
 
                 tabela.innerHTML += `
                     <tr>
-                        <td>
-                            <strong>${data.nomeCompleto || 'Novo Usuário'}</strong><br>
-                            <small style="opacity:0.6">${data.email}</small>
-                        </td>
+                        <td><strong>${d.nomeCompleto}</strong><br><small style="opacity:0.5">${d.email}</small></td>
                         <td><span class="badge ${role}">${role}</span></td>
-                        <td style="text-align: right;">${isSelf ? '<small>Você</small>' : (isAnotherAdmin ? '<i class="fas fa-shield-alt"></i>' : acoes)}</td>
-                    </tr>
-                `;
+                        <td><div class="btn-group">${isSelf ? '<small>Você</small>' : (targetIsAdmin ? '<i class="fas fa-lock" title="Admin Protegido"></i>' : botoes)}</div></td>
+                    </tr>`;
             });
         }
 
-        // Funções de Modal
-        window.abrirModalNome = (id, nome) => {
-            idSendoEditado = id;
-            document.getElementById("inputNome").value = nome;
-            document.getElementById("modalNome").style.display = "flex";
-        };
-
-        window.fecharModal = () => {
-            document.getElementById("modalNome").style.display = "none";
-        };
-
+        window.modalNome = (id, nome) => { idEdit = id; document.getElementById("inputNome").value = nome; document.getElementById("modalNome").style.display = "flex"; };
+        window.fecharModal = () => { document.getElementById("modalNome").style.display = "none"; };
+        
         document.getElementById("btnSalvarNome").onclick = async () => {
-            const novoNome = document.getElementById("inputNome").value.trim();
-            if (novoNome && idSendoEditado) {
-                await updateDoc(doc(db, "users", idSendoEditado), { nomeCompleto: novoNome });
-                fecharModal();
+            const n = document.getElementById("inputNome").value.trim();
+            if(n && idEdit) { await updateDoc(doc(db, "users", idEdit), { nomeCompleto: n }); fecharModal(); carregarUsuarios(); }
+        };
+
+        window.mudarCargo = async (uid, novo) => {
+            const acao = novo === 'leitor' ? "REBAIXAR" : "PROMOVER";
+            if(confirm(`Deseja ${acao} este usuário para ${novo.toUpperCase()}?`)) {
+                await updateDoc(doc(db, "users", uid), { role: novo });
                 carregarUsuarios();
             }
         };
 
-        window.promover = async (uid, novoCargo) => {
-            if (confirm(`Confirmar promoção para ${novoCargo.toUpperCase()}?`)) {
-                await updateDoc(doc(db, "users", uid), { role: novoCargo });
-                carregarUsuarios();
-            }
-        };
-
-        // SAIR IMEDIATO
-        window.sairImediato = () => {
-            signOut(auth).then(() => {
-                window.location.href = "index.html";
-            });
-        };
+        window.sairImediato = () => signOut(auth).then(() => window.location.href = "index.html");
     </script>
 </body>
 </html>
