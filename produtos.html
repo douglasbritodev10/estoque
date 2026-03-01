@@ -3,131 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Móveis Simonetti - Gestão de Assistência</title>
+  <title>Simonetti - Gestão de Produtos</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root {
-      --primary: #004a99;
-      --danger: #dc3545;
-      --success: #28a745;
-      --warning: #f39c12;
-      --gray: #6c757d;
-      --border-color: #dddddd;
+      --primary: #004a99; --glass: rgba(255, 255, 255, 0.9);
+      --danger: #ff4d4d; --success: #00c853; --gray: #6c757d; --warning: #ffab00; --info: #17a2b8;
     }
-
-    body { background-color: #f4f7f6; margin: 0; font-family: 'Segoe UI', sans-serif; }
-
-    .top-nav {
-      background: var(--primary); color: white; padding: 10px 20px;
-      display: flex; justify-content: space-between; align-items: center;
+    body { 
+      background: linear-gradient(135deg, #001f3f 0%, #004a99 100%);
+      background-attachment: fixed; margin: 0; font-family: 'Segoe UI', sans-serif; 
+      color: #333; min-height: 100vh;
     }
-    .nav-left { display: flex; align-items: center; gap: 15px; }
-    .btn-back { 
-      background: rgba(255,255,255,0.2); border: none; color: white; 
-      padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 20px;
+    .top-nav { 
+      background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(15px);
+      padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
-
-    /* Painel de Filtros Triplo */
-    .search-panel { 
-        background: white; 
-        margin: 15px 20px; 
-        padding: 15px; 
-        border-radius: 8px; 
-        border: 1px solid #ddd;
-        display: flex;
-        gap: 15px;
-        align-items: flex-end;
+    .main-container { padding: 20px; max-width: 1200px; margin: auto; }
+    .glass-panel { 
+      background: var(--glass); backdrop-filter: blur(10px); 
+      border-radius: 12px; padding: 20px; margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
-
-    .cadastro-bar { background: #eee; padding: 15px 20px; display: flex; gap: 10px; align-items: flex-end; border-bottom: 2px solid var(--primary); }
-    .field-group { display: flex; flex-direction: column; gap: 4px; }
-    .field-group label { font-size: 11px; font-weight: bold; color: #444; }
-    .field-group input, .field-group select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-
-    .main-content { padding: 0 20px; }
-    table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    th { 
-      background: #f2f2f2; color: #333; padding: 12px; text-align: left; font-size: 12px; 
-      border: 1px solid var(--border-color);
-    }
-    td { 
-      padding: 10px; border: 1px solid var(--border-color);
-      font-size: 14px; 
-    }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; color: var(--primary); font-size: 0.8rem; }
+    td { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
     
-    .row-prod { background: #fdfdfd; font-weight: bold; }
-    .row-vol { background: #ffffff; display: none; }
-    .row-vol.active { display: table-row; }
-    .indent { padding-left: 30px; color: #555; }
-
-    .btn-action { 
-        padding: 4px 8px; border: none; border-radius: 3px; cursor: pointer; 
-        color: white; font-weight: bold; font-size: 12px; transition: 0.2s;
+    /* Estilo dos Botões */
+    .btn-action {
+      border: none; padding: 8px 12px; border-radius: 6px; 
+      color: white; cursor: pointer; font-weight: bold; font-size: 0.75rem;
+      transition: 0.3s; display: inline-flex; align-items: center; gap: 5px;
     }
-    .btn-action:hover { opacity: 0.8; }
+    .btn-action:hover { opacity: 0.8; transform: scale(1.05); }
+
+    /* Linhas filhas (Volumes) */
+    .child-row { display: none; background: #f9f9f9; }
+    .child-row.active { display: table-row; }
+
+    /* Modal */
+    .modal { 
+        position: fixed; top:0; left:0; width:100%; height:100%; 
+        background: rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; z-index: 1000;
+    }
+    .modal-content { 
+        background: white; padding: 25px; border-radius: 15px; 
+        width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .modal-content input, .modal-content select {
+        width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
 
-  <div class="top-nav">
-    <div class="nav-left">
-      <a href="dashboard.html" class="btn-back">←</a>
-      <span id="labelUser">Olá...</span>
+  <nav class="top-nav">
+    <div style="display:flex; align-items:center; gap:15px;">
+        <a href="dashboard.html" style="color:white; font-size:1.2rem;"><i class="fas fa-arrow-left"></i></a>
+        <h3 style="color:white; margin:0;">GESTÃO DE PRODUTOS</h3>
     </div>
-    <div style="font-size: 14px; opacity: 0.9;">CONTROLE DE PULMÃO - ASSISTÊNCIA</div>
-    <button onclick="logout()" class="btn-action" style="background:var(--danger)">Sair</button>
-  </div>
+    <div id="userDisplay" style="color:white; font-weight:bold;"></div>
+  </nav>
 
-  <div class="cadastro-bar">
-    <div class="field-group">
-      <label>CÓDIGO (SKU):</label>
-      <input type="text" id="newCod" placeholder="Ex: 40169700" style="width: 100px;">
-    </div>
-    <div class="field-group" style="flex-grow: 1;">
-      <label>DESCRIÇÃO DO PRODUTO (PRINCIPAL):</label>
-      <input type="text" id="newNome" placeholder="Ex: ROUPEIRO 2PTS DESLIZ SERENO">
-    </div>
-    <div class="field-group">
-      <label>FORNECEDOR:</label>
-      <select id="selForn" style="width: 180px;"><option>Carregando...</option></select>
-    </div>
-    <button class="btn-action" id="btnSaveProd" style="background:var(--primary); height: 36px; padding: 0 15px;">SALVAR</button>
-  </div>
-
-  <div class="search-panel">
-    <div class="field-group" style="width: 140px;">
-      <label>FILTRAR CÓDIGO:</label>
-      <input type="text" id="filtroCod" placeholder="Cód..." onkeyup="filtrar()">
-    </div>
+  <div class="main-container">
     
-    <div class="field-group" style="width: 220px;">
-      <label>FORNECEDOR:</label>
-      <select id="filtroForn" onchange="filtrar()">
-        <option value="">Todos</option>
-      </select>
+    <div style="display:flex; justify-content: flex-end; margin-bottom: 15px;">
+        <button id="btnAbrirModalProd" class="btn-action" style="background:var(--success); padding: 12px 20px; display:none;" onclick="window.modalNovoProduto()">
+            <i class="fas fa-plus"></i> NOVO PRODUTO MASTER
+        </button>
     </div>
 
-    <div class="field-group" style="flex-grow: 1;">
-      <label>PRODUTO OU VOLUME:</label>
-      <input type="text" id="filtroDesc" placeholder="🔍 Buscar por nome ou volume..." onkeyup="filtrar()">
+    <div class="glass-panel">
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:10px;">
+        <select id="filtroForn" onchange="window.filtrar()"><option value="">Fornecedor...</option></select>
+        <input type="text" id="filtroCod" placeholder="SKU / Código" onkeyup="window.filtrar()">
+        <input type="text" id="filtroDesc" placeholder="Descrição" onkeyup="window.filtrar()">
+        <button onclick="window.limparFiltros()" class="btn-action" style="background:var(--gray)"><i class="fas fa-sync"></i></button>
+      </div>
     </div>
-    
-    <button class="btn-action" onclick="limparFiltros()" style="background:var(--gray); height: 35px; padding: 0 15px;">Limpar</button>
+
+    <div class="glass-panel" style="padding: 0; overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px;"></th>
+            <th>FORNECEDOR</th>
+            <th>CÓDIGO</th>
+            <th>PRODUTO MASTER</th>
+            <th style="text-align: center;">TOTAL</th>
+            <th style="text-align: right; padding-right: 20px;">AÇÕES</th>
+          </tr>
+        </thead>
+        <tbody id="tblEstoque">
+            </tbody>
+      </table>
+    </div>
   </div>
 
-  <div class="main-content">
-    <table id="tblEstoque">
-      <thead>
-        <tr>
-          <th style="width: 30px; text-align: center;">#</th>
-          <th>FORNECEDOR</th>
-          <th>CÓDIGO</th>
-          <th>DESCRIÇÃO / VOLUME</th>
-          <th style="width: 80px; text-align: center;">QTD</th>
-          <th style="width: 280px; text-align: right;">AÇÕES</th>
-        </tr>
-      </thead>
-      <tbody id="corpoTabela"></tbody>
-    </table>
+  <div id="modalMaster" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle" style="margin-top: 0; color: var(--primary);">Título</h3>
+      <div id="modalBody"></div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <button onclick="window.fecharModal()" class="btn-action" style="background:#eee; color:#333;">CANCELAR</button>
+        <button id="btnModalConfirm" class="btn-action" style="background:var(--primary);">CONFIRMAR</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="js/produtos.js"></script>
