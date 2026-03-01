@@ -22,18 +22,18 @@
         .operador { background: var(--warning); color: #000; }
         .admin { background: var(--danger); }
 
-        .btn-group { display: flex; gap: 8px; justify-content: flex-end; }
+        .btn-group { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
         .btn-action { border: none; color: white; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
         .btn-edit { background: var(--primary); }
         .btn-up { background: var(--success); }
-        .btn-down { background: #e67e22; } /* Laranja para rebaixar */
+        .btn-down { background: #e67e22; }
         .btn-action:hover { transform: translateY(-2px); filter: brightness(1.2); }
 
         /* MODAL */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: white; color: #333; padding: 25px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; }
-        .modal-content input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn-confirm { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
+        .modal-content input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn-confirm { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
     </style>
 </head>
 <body>
@@ -62,10 +62,11 @@
 
     <div id="modalNome" class="modal">
         <div class="modal-content">
-            <h3 style="margin:0;">Alterar Nome</h3>
+            <h3 style="margin:0; color: var(--primary);">Alterar Nome</h3>
+            <p id="subTitleModal" style="font-size: 12px; color: #666; margin-top: 5px;">Digite o novo nome de exibição</p>
             <input type="text" id="inputNome">
-            <button class="btn-confirm" id="btnSalvarNome">ATUALIZAR</button>
-            <button onclick="fecharModal()" style="background:none; border:none; margin-top:10px; color:#666; cursor:pointer;">Cancelar</button>
+            <button class="btn-confirm" id="btnSalvarNome">ATUALIZAR NOME</button>
+            <button onclick="fecharModal()" style="background:none; border:none; margin-top:15px; color:#999; cursor:pointer; font-size: 13px;">Cancelar</button>
         </div>
     </div>
 
@@ -81,9 +82,14 @@
             if (user) {
                 const snap = await getDoc(doc(db, "users", user.uid));
                 if (snap.exists() && snap.data().role === "admin") {
-                    adminUid = user.uid; carregarUsuarios();
-                } else { window.location.href = "pagina.html"; }
-            } else { window.location.href = "index.html"; }
+                    adminUid = user.uid; 
+                    carregarUsuarios();
+                } else { 
+                    window.location.href = "pagina.html"; 
+                }
+            } else { 
+                window.location.href = "index.html"; 
+            }
         });
 
         async function carregarUsuarios() {
@@ -96,38 +102,66 @@
                 const id = uDoc.id;
                 const role = d.role || "leitor";
                 const isSelf = id === adminUid;
-                const targetIsAdmin = role === "admin";
+                const targetIsOtherAdmin = role === "admin" && !isSelf;
 
                 let botoes = "";
-                // Se NÃO for você mesmo e NÃO for outro admin, libera os controles
-                if (!isSelf && !targetIsAdmin) {
+                
+                // AJUSTE: Se for VOCÊ MESMO, permite apenas editar o nome
+                if (isSelf) {
+                    botoes = `<button class="btn-action btn-edit" onclick="window.modalNome('${id}','${d.nomeCompleto}')" title="Editar Meu Nome"><i class="fas fa-pen"></i></button>`;
+                } 
+                // Se for Leitor ou Operador (NÃO Admin), permite tudo
+                else if (!targetIsOtherAdmin) {
                     botoes += `<button class="btn-action btn-edit" onclick="window.modalNome('${id}','${d.nomeCompleto}')" title="Editar Nome"><i class="fas fa-pen"></i></button>`;
                     
-                    // Lógica de subir nível
-                    if (role === "leitor") botoes += `<button class="btn-action btn-up" onclick="window.mudarCargo('${id}','operador')" title="Subir p/ Operador"><i class="fas fa-arrow-up"></i></button>`;
-                    if (role !== "admin") botoes += `<button class="btn-action btn-up" style="background:var(--danger)" onclick="window.mudarCargo('${id}','admin')" title="Tornar Admin"><i class="fas fa-user-shield"></i></button>`;
-                    
-                    // Lógica de baixar nível (Novo pedido!)
+                    if (role === "leitor") {
+                        botoes += `<button class="btn-action btn-up" onclick="window.mudarCargo('${id}','operador')" title="Subir p/ Operador"><i class="fas fa-arrow-up"></i></button>`;
+                    }
                     if (role === "operador") {
                         botoes += `<button class="btn-action btn-down" onclick="window.mudarCargo('${id}','leitor')" title="Rebaixar p/ Leitor"><i class="fas fa-arrow-down"></i></button>`;
                     }
+                    // Botão para transformar em Admin
+                    botoes += `<button class="btn-action btn-up" style="background:var(--danger)" onclick="window.mudarCargo('${id}','admin')" title="Tornar Admin"><i class="fas fa-user-shield"></i></button>`;
                 }
 
                 tabela.innerHTML += `
                     <tr>
-                        <td><strong>${d.nomeCompleto}</strong><br><small style="opacity:0.5">${d.email}</small></td>
+                        <td>
+                            <strong>${d.nomeCompleto}</strong> ${isSelf ? '<span style="font-size:10px; opacity:0.5; margin-left:5px;">(VOCÊ)</span>' : ''}<br>
+                            <small style="opacity:0.5">${d.email}</small>
+                        </td>
                         <td><span class="badge ${role}">${role}</span></td>
-                        <td><div class="btn-group">${isSelf ? '<small>Você</small>' : (targetIsAdmin ? '<i class="fas fa-lock" title="Admin Protegido"></i>' : botoes)}</div></td>
+                        <td>
+                            <div class="btn-group">
+                                ${targetIsOtherAdmin ? '<i class="fas fa-lock" title="Admin Protegido" style="opacity:0.3"></i>' : botoes}
+                            </div>
+                        </td>
                     </tr>`;
             });
         }
 
-        window.modalNome = (id, nome) => { idEdit = id; document.getElementById("inputNome").value = nome; document.getElementById("modalNome").style.display = "flex"; };
-        window.fecharModal = () => { document.getElementById("modalNome").style.display = "none"; };
+        // Funções de Modal e Ações
+        window.modalNome = (id, nome) => { 
+            idEdit = id; 
+            document.getElementById("inputNome").value = nome; 
+            document.getElementById("modalNome").style.display = "flex"; 
+        };
+
+        window.fecharModal = () => { 
+            document.getElementById("modalNome").style.display = "none"; 
+        };
         
         document.getElementById("btnSalvarNome").onclick = async () => {
             const n = document.getElementById("inputNome").value.trim();
-            if(n && idEdit) { await updateDoc(doc(db, "users", idEdit), { nomeCompleto: n }); fecharModal(); carregarUsuarios(); }
+            if(n && idEdit) { 
+                try {
+                    await updateDoc(doc(db, "users", idEdit), { nomeCompleto: n }); 
+                    fecharModal(); 
+                    carregarUsuarios(); 
+                } catch (e) {
+                    alert("Erro ao atualizar nome.");
+                }
+            }
         };
 
         window.mudarCargo = async (uid, novo) => {
