@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagina - Móveis Simonetti</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #004a99;
+            --white: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-color: #ffffff;
+            --danger: #ff4d4d;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #002d5f 0%, #004a99 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo-area { font-weight: bold; letter-spacing: 1px; }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-badge {
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #btnLogout {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            text-decoration: none;
+        }
+
+        /* Grid de Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card:hover:not(.locked) {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* ESTILO DO CARD BLOQUEADO */
+        .glass-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(0.8);
+        }
+
+        .lock-icon {
+            display: none;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.2rem;
+            color: #ffab00;
+        }
+
+        .glass-card.locked .lock-icon { display: block; }
+        .glass-card.locked .card-action { background: #555; }
+
+        .card-icon { font-size: 3rem; margin-bottom: 15px; }
+        .card-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; line-height: 1.2; }
+        
+        .card-action {
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="logo-area">PAGINA INICIAL</div>
+        <div class="user-info">
+            <div class="user-badge" id="userGreeting">
+                <i class="fas fa-user-circle"></i> Carregando...
+            </div>
+            <button id="btnLogout">SAIR</button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <a href="produtos.html" id="cardProdutos" class="glass-card">
+            <i class="fas fa-lock lock-icon"></i>
+            <div class="card-icon">📦</div>
+            <div class="card-title">Gestão de<br>Produtos</div>
+            <div class="card-action">Acessar</div>
+        </a>
+
+        <a href="estoque.html" id="cardEstoque" class="glass-card">
+            <i class="fas fa-lock lock-icon"></i>
+            <div class="card-icon">📊</div>
+            <div class="card-title">Mapa de<br>Endereçamento</div>
+            <div class="card-action">Acessar</div>
+        </a>
+        
+        <a href="fornecedores.html" id="cardFornecedores" class="glass-card">
+            <i class="fas fa-lock lock-icon"></i>
+            <div class="card-icon">🏭</div>
+            <div class="card-title">Cadastrar<br>Fornecedores</div>
+            <div class="card-action">Acessar</div>
+        </a>        
+
+        <a href="historico.html" id="cardHistorico" class="glass-card">
+            <i class="fas fa-lock lock-icon"></i>
+            <div class="card-icon">📜</div>
+            <div class="card-title">Histórico de<br>Movimentação</div>
+            <div class="card-action">Acessar</div>
+        </a>
+    </div>
+
+    <script type="module">
+        import { auth, db } from "./js/firebase-config.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const userRef = doc(db, "users", user.uid);
+                    const userSnap = await getDoc(userRef);
+                    
+                    let userRole = "leitor";
+                    let userName = user.email.split('@')[0].toUpperCase();
+
+                    if (userSnap.exists()) {
+                        const userData = userSnap.data();
+                        userRole = (userData.role || "leitor").toLowerCase();
+                        userName = (userData.nomeCompleto || userName).toUpperCase();
+                    }
+
+                    document.getElementById("userGreeting").innerHTML = `<i class="fas fa-user-circle"></i> ${userName} (${userRole.toUpperCase()})`;
+
+                    // Lógica de Bloqueio Visual
+                    const cards = {
+                        produtos: document.getElementById("cardProdutos"),
+                        estoque: document.getElementById("cardEstoque"),
+                        fornecedores: document.getElementById("cardFornecedores"),
+                        historico: document.getElementById("cardHistorico")
+                    };
+
+                    const bloquear = (card) => {
+                        card.classList.add("locked");
+                        card.onclick = (e) => {
+                            e.preventDefault(); // Impede de navegar
+                            alert("Seu nível de acesso não permite entrar neste módulo.");
+                        };
+                        const actionLabel = card.querySelector(".card-action");
+                        if(actionLabel) actionLabel.innerText = "Bloqueado";
+                    };
+
+                    // Aplicando as regras
+                    if (userRole === "leitor") {
+                        // Leitor: Bloqueia Fornecedores e Histórico
+                        bloquear(cards.fornecedores);
+                        bloquear(cards.historico);
+                    } 
+                    else if (userRole === "operador") {
+                        // Operador: Bloqueia Fornecedores e Histórico
+                        bloquear(cards.fornecedores);
+                        bloquear(cards.historico);
+                    }
+                    // Admin: Não bloqueia nada
+
+                } catch (error) {
+                    console.error("Erro:", error);
+                }
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        document.getElementById("btnLogout").onclick = () => {
+            auth.signOut().then(() => { window.location.href = "index.html"; });
+        };
+    </script>
+</body>
+</html>
