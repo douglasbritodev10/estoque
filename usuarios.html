@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestão de Usuários - Simonetti</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #004a99; --success: #00c853; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #002d5f 0%, #004a99 100%); color: white; margin: 0; min-height: 100vh; }
+        .container { max-width: 800px; margin: 40px auto; padding: 20px; }
+        .glass-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 20px; border: 1px solid rgba(255,255,255,0.2); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: white; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .leitor { background: #6c757d; }
+        .operador { background: #f1c40f; color: black; }
+        .admin { background: #e74c3c; }
+        .btn-up { background: var(--success); border: none; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .btn-up:disabled { opacity: 0.3; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <a href="pagina.html" style="color:white;"><i class="fas fa-arrow-left"></i> Voltar</a>
+            <h2><i class="fas fa-users"></i> Gestão de Usuários</h2>
+        </div>
+
+        <div class="glass-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Cargo Atual</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="listaUsuarios">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from "./js/firebase-config.js";
+        import { collection, getDocs, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+        onAuthStateChanged(auth, async user => {
+            if (user) {
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if (snap.data().role !== "admin") {
+                    alert("Acesso restrito a administradores!");
+                    window.location.href = "pagina.html";
+                } else {
+                    carregarUsuarios();
+                }
+            } else { window.location.href = "index.html"; }
+        });
+
+        async function carregarUsuarios() {
+            const querySnapshot = await getDocs(collection(db, "users"));
+            const tabela = document.getElementById("listaUsuarios");
+            tabela.innerHTML = "";
+
+            querySnapshot.forEach((userDoc) => {
+                const data = userDoc.data();
+                const id = userDoc.id;
+                const role = data.role || "leitor";
+
+                let botoes = "";
+                // Se for leitor, pode subir para Operador ou Admin
+                if (role === "leitor") {
+                    botoes = `
+                        <button class="btn-up" onclick="promover('${id}', 'operador')">Subir p/ Operador</button>
+                        <button class="btn-up" style="background:#e74c3c" onclick="promover('${id}', 'admin')">Subir p/ Admin</button>
+                    `;
+                } 
+                // Se for operador, só pode subir para Admin
+                else if (role === "operador") {
+                    botoes = `<button class="btn-up" style="background:#e74c3c" onclick="promover('${id}', 'admin')">Subir p/ Admin</button>`;
+                } 
+                // Se for Admin, não aparece botão (conforme sua regra)
+                else {
+                    botoes = `<span style="font-size:12px; opacity:0.6">Nível Máximo</span>`;
+                }
+
+                tabela.innerHTML += `
+                    <tr>
+                        <td>${data.nomeCompleto}<br><small>${data.email}</small></td>
+                        <td><span class="badge ${role}">${role}</span></td>
+                        <td>${botoes}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.promover = async (uid, novoCargo) => {
+            if (confirm(`Deseja promover este usuário para ${novoCargo.toUpperCase()}?`)) {
+                await updateDoc(doc(db, "users", uid), { role: novoCargo });
+                alert("Usuário promovido!");
+                carregarUsuarios();
+            }
+        };
+    </script>
+</body>
+</html>
