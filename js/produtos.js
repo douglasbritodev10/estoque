@@ -1,227 +1,233 @@
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { 
-    collection, addDoc, getDocs, serverTimestamp, doc, 
-    updateDoc, increment, query, orderBy, deleteDoc 
+    collection, addDoc, getDocs, serverTimestamp, doc, getDoc,
+    updateDoc, deleteDoc, increment 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 let fornecedoresCache = {};
+let userRole = "leitor";
+let usernameDB = "Usuário";
 
-onAuthStateChanged(auth, user => {
+// --- CONTROLE DE ACESSO E AUTH ---
+onAuthStateChanged(auth, async user => {
     if (user) {
-        document.getElementById("labelUser").innerText = `Olá, ${user.email.split('@')[0].toUpperCase()}`;
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        if (userSnap.exists()) {
+            const d = userSnap.data();
+            userRole = (d.role || "leitor").toLowerCase();
+            usernameDB = d.nomeCompleto || "Usuário";
+            
+            // Exibe botão de novo produto apenas para Admin
+            const btnProd = document.getElementById("btnAbrirModalProd");
+            if(btnProd && userRole === "admin") btnProd.style.display = "block";
+        }
+        document.getElementById("userDisplay").innerHTML = `<i class="fas fa-user-circle"></i> ${usernameDB}`;
+        
+        // Recuperar filtros salvos para não perder a busca ao recarregar
+        document.getElementById("filtroForn").value = localStorage.getItem("f_forn") || "";
+        document.getElementById("filtroCod").value = localStorage.getItem("f_cod") || "";
+        document.getElementById("filtroDesc").value = localStorage.getItem("f_desc") || "";
+        
         init();
-    } else { window.location.href = "index.html"; }
+    } else { 
+        window.location.href = "index.html"; 
+    }
 });
 
 async function init() {
-    const fSnap = await getDocs(query(collection(db, "fornecedores"), orderBy("nome", "asc")));
-    const selCadastro = document.getElementById("selForn");
-    const selFiltro = document.getElementById("filtroForn");
+    // Carregar Fornecedores para o Cache e Select
+    const fSnap = await getDocs(collection(db, "fornecedores"));
+    const selForn = document.getElementById("filtroForn");
+    selForn.innerHTML = '<option value="">Todos os Fornecedores</option>';
     
-    selCadastro.innerHTML = '<option value="">Selecione...</option>';
-    selFiltro.innerHTML = '<option value="">Todos os Fornecedores</option>';
-
     fSnap.forEach(d => {
-        const nome = d.data().nome;
-        fornecedoresCache[d.id] = nome;
-        selCadastro.innerHTML += `<option value="${d.id}">${nome}</option>`;
-        selFiltro.innerHTML += `<option value="${nome}">${nome}</option>`;
+        fornecedoresCache[d.id] = d.data().nome;
+        selForn.innerHTML += `<option value="${d.id}">${d.data().nome}</option>`;
     });
-
-    document.getElementById("filtroCod").value = localStorage.getItem('f_assist_cod') || "";
-    document.getElementById("filtroForn").value = localStorage.getItem('f_assist_forn') || "";
-    document.getElementById("filtroDesc").value = localStorage.getItem('f_assist_desc') || "";
-
-    refresh();
+    
+    renderizar();
 }
 
-async function refresh() {
-    const tbody = document.getElementById("corpoTabela");
-    const pSnap = await getDocs(query(collection(db, "produtos"), orderBy("nome", "asc")));
-    const vSnap = await getDocs(collection(db, "volumes"));
-    const vols = vSnap.docs.map(d => ({id: d.id, ...d.data()}));
-
-    tbody.innerHTML = "";
-
-    pSnap.forEach(dp => {
-        const p = dp.data();
-        const pId = dp.id;
-        const nForn = fornecedoresCache[p.fornecedorId] || "---";
-        const vDesteProd = vols.filter(v => v.produtoId === pId);
-        
-        // --- LÓGICA DE AGRUPAMENTO (PARA NÃO GERAR LINHAS DUPLICADAS) ---
-        const grupos = {};
-        vDesteProd.forEach(v => {
-            if (!grupos[v.descricao]) {
-                grupos[v.descricao] = { total: 0, idReferencia: v.id };
-            }
-            grupos[v.descricao].total += v.quantidade;
-        });
-
-        const qtdTotalGeral = vDesteProd.reduce((acc, curr) => acc + curr.quantidade, 0);
-        const nomesVolumesBusca = Object.keys(grupos).join(" ").toLowerCase();
-
-        const tr = document.createElement('tr');
-        tr.className = "row-prod";
-        tr.dataset.cod = (p.codigo || "").toLowerCase();
-        tr.dataset.forn = nForn;
-        tr.dataset.desc = `${p.nome} ${nomesVolumesBusca}`.toLowerCase();
-        
-        tr.innerHTML = `
-            <td style="text-align:center; cursor:pointer; color:var(--primary)" onclick="window.toggleVols('${pId}')">▼</td>
-            <td>${nForn}</td>
-            <td>${p.codigo}</td>
-            <td>${p.nome}</td>
-            <td style="text-align:center"><strong>${qtdTotalGeral}</strong></td>
-            <td style="text-align:right">
-                <button class="btn-action" style="background:var(--success)" onclick="window.addVolume('${pId}', '${p.nome}')">+ Volume</button>
-                <button class="btn-action" style="background:var(--warning)" onclick="window.editarItem('${pId}', 'produtos', '${p.nome}')">✎</button>
-                <button class="btn-action" style="background:var(--danger)" onclick="window.deletar('${pId}', 'produtos', '${p.nome}')">Excluir</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-
-        // Renderiza os volumes somados/agrupados
-        Object.keys(grupos).forEach(desc => {
-            const trV = document.createElement('tr');
-            trV.className = `row-vol child-${pId}`;
-            
-            trV.innerHTML = `
-                <td></td>
-                <td colspan="3" class="indent">↳ ${desc}</td>
-                <td style="text-align:center; font-weight:bold;">${grupos[desc].total}</td>
-                <td style="text-align:right">
-                    <button class="btn-action" style="background:var(--success)" onclick="window.entradaLote('${pId}', '${desc}')">▲</button>
-                    <button class="btn-action" style="background:var(--danger)" onclick="window.saidaAgrupada('${pId}', '${desc}')">▼</button>
-                    <button class="btn-action" style="background:var(--warning); margin-left:15px" onclick="window.editarItem('${grupos[desc].idReferencia}', 'volumes', '${desc}')">✎</button>
-                    <button class="btn-action" style="background:var(--gray)" onclick="window.deletarLote('${pId}', '${desc}')">✕</button>
-                </td>
-            `;
-            tbody.appendChild(trV);
-        });
-    });
-    window.filtrar();
-}
-
-// ENTRADA: Cria um novo registro sem endereço (Cai nos pendentes do estoque)
-window.entradaLote = async (pId, desc) => {
-    const q = prompt(`Quantidade de ENTRADA para (${desc}):`, "1");
-    if (!q || isNaN(q) || parseInt(q) <= 0) return;
-
-    await addDoc(collection(db, "volumes"), { 
-        produtoId: pId, 
-        descricao: desc, 
-        quantidade: parseInt(q), 
-        enderecoId: "", 
-        ultimaMovimentacao: serverTimestamp() 
-    });
-
-    await addDoc(collection(db, "movimentacoes"), {
-        produto: desc, tipo: "Entrada", quantidade: parseInt(q), usuario: auth.currentUser.email, data: serverTimestamp()
-    });
-    refresh();
-};
-
-// SAÍDA: Abate a quantidade total procurando em todos os endereços onde o item existe
-window.saidaAgrupada = async (pId, desc) => {
-    const qStr = prompt(`Quantidade de SAÍDA para (${desc}):`, "1");
-    if (!qStr || isNaN(qStr)) return;
-    let qtdParaRemover = parseInt(qStr);
-
-    const vSnap = await getDocs(collection(db, "volumes"));
-    const lotes = vSnap.docs
-        .map(d => ({id: d.id, ...d.data()}))
-        .filter(v => v.produtoId === pId && v.descricao === desc && v.quantidade > 0);
-
-    const totalDisponivel = lotes.reduce((acc, cur) => acc + cur.quantidade, 0);
-    if(qtdParaRemover > totalDisponivel) return alert("Estoque insuficiente!");
-
-    for (let lote of lotes) {
-        if (qtdParaRemover <= 0) break;
-        const tirar = Math.min(lote.quantidade, qtdParaRemover);
-        await updateDoc(doc(db, "volumes", lote.id), { 
-            quantidade: increment(-tirar),
-            ultimaMovimentacao: serverTimestamp()
-        });
-        qtdParaRemover -= tirar;
-    }
-
-    await addDoc(collection(db, "movimentacoes"), {
-        produto: desc, tipo: "Saída", quantidade: parseInt(qStr), usuario: auth.currentUser.email, data: serverTimestamp()
-    });
-    refresh();
-};
-
-// EXCLUSÃO: Remove todas as instâncias desse volume para esse produto
-window.deletarLote = async (pId, desc) => {
-    if(confirm(`Excluir permanentemente o volume "${desc}" de todos os locais?`)){
-        const vSnap = await getDocs(collection(db, "volumes"));
-        const alvos = vSnap.docs.filter(d => d.data().produtoId === pId && d.data().descricao === desc);
-        for(let a of alvos) { await deleteDoc(doc(db, "volumes", a.id)); }
-        refresh();
-    }
-};
-
+// --- SISTEMA DE FILTROS ---
 window.filtrar = () => {
-    const fCod = document.getElementById("filtroCod").value.toLowerCase();
-    const fForn = document.getElementById("filtroForn").value;
-    const fDesc = document.getElementById("filtroDesc").value.toLowerCase();
-
-    localStorage.setItem('f_assist_cod', fCod);
-    localStorage.setItem('f_assist_forn', fForn);
-    localStorage.setItem('f_assist_desc', fDesc);
-
-    document.querySelectorAll(".row-prod").forEach(rp => {
-        const matchesCod = rp.dataset.cod.includes(fCod);
-        const matchesForn = fForn === "" || rp.dataset.forn === fForn;
-        const matchesDesc = rp.dataset.desc.includes(fDesc);
-        rp.style.display = (matchesCod && matchesForn && matchesDesc) ? "" : "none";
-    });
+    localStorage.setItem("f_forn", document.getElementById("filtroForn").value);
+    localStorage.setItem("f_cod", document.getElementById("filtroCod").value);
+    localStorage.setItem("f_desc", document.getElementById("filtroDesc").value);
+    renderizar();
 };
 
 window.limparFiltros = () => {
-    document.getElementById("filtroCod").value = "";
-    document.getElementById("filtroForn").value = "";
-    document.getElementById("filtroDesc").value = "";
-    window.filtrar();
+    localStorage.clear();
+    location.reload();
 };
+
+// --- RENDERIZAÇÃO COM JUNÇÃO DE VOLUMES (CONSOLIDAÇÃO) ---
+async function renderizar() {
+    const fForn = document.getElementById("filtroForn").value;
+    const fCod = document.getElementById("filtroCod").value.toUpperCase();
+    const fDesc = document.getElementById("filtroDesc").value.toUpperCase();
+
+    const [pSnap, vSnap] = await Promise.all([
+        getDocs(collection(db, "produtos")),
+        getDocs(collection(db, "volumes"))
+    ]);
+
+    const tbody = document.getElementById("tblEstoque");
+    tbody.innerHTML = "";
+
+    pSnap.forEach(docP => {
+        const p = docP.data();
+        const pId = docP.id;
+        
+        // Agrupar volumes pelo código SKU para somar as quantidades
+        let volsAgrupados = {};
+        vSnap.forEach(vDoc => {
+            const v = vDoc.data();
+            if(v.produtoId === pId) {
+                const sku = v.codigo.trim().toUpperCase();
+                if(!volsAgrupados[sku]) {
+                    volsAgrupados[sku] = {
+                        primeiroId: vDoc.id, // Referência para atualização
+                        codigo: v.codigo,
+                        descricao: v.descricao,
+                        quantidade: 0
+                    };
+                }
+                volsAgrupados[sku].quantidade += (v.quantidade || 0);
+            }
+        });
+
+        const listaVols = Object.values(volsAgrupados);
+        const totalGeral = listaVols.reduce((acc, v) => acc + v.quantidade, 0);
+
+        // Aplicação dos Filtros
+        const matchForn = !fForn || p.fornecedorId === fForn;
+        const matchDesc = !fDesc || p.nome.toUpperCase().includes(fDesc);
+        const matchCod = !fCod || p.codigo.toUpperCase().includes(fCod) || listaVols.some(v => v.codigo.toUpperCase().includes(fCod));
+
+        if (matchForn && matchCod && matchDesc) {
+            // Linha do Produto Master
+            tbody.innerHTML += `
+                <tr data-id="${pId}">
+                    <td onclick="window.toggleVols('${pId}')" style="cursor:pointer; text-align:center; color:var(--primary)">
+                        <i class="fas fa-chevron-right"></i>
+                    </td>
+                    <td>${fornecedoresCache[p.fornecedorId] || '---'}</td>
+                    <td><b>${p.codigo || '---'}</b></td>
+                    <td>${p.nome}</td>
+                    <td style="text-align:center"><strong>${totalGeral}</strong></td>
+                    <td style="text-align:right">
+                        ${userRole === 'admin' ? `
+                            <button class="btn-action" style="background:var(--info)" onclick="window.modalNovoSKU('${pId}', '${p.nome}')">CRIAR SKU</button>
+                            <button class="btn-action" style="background:var(--danger); margin-left:5px;" onclick="window.deletar('${pId}', 'produtos', '${p.nome}')"><i class="fas fa-trash"></i></button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;
+
+            // Linhas dos Volumes Consolidados
+            listaVols.forEach(v => {
+                tbody.innerHTML += `
+                    <tr class="child-row child-${pId}">
+                        <td></td>
+                        <td colspan="2" style="font-size:0.8rem; color:var(--primary); padding-left:20px;">↳ SKU: ${v.codigo}</td>
+                        <td style="font-size:0.8rem; color:#555;">${v.descricao}</td>
+                        <td style="text-align:center; font-size:0.9rem; font-weight:bold; background:#f0f9ff;">${v.quantidade}</td>
+                        <td style="text-align:right">
+                            <button class="btn-action" style="background:var(--success)" onclick="window.modalEntrada('${v.primeiroId}', '${v.descricao}')">ENTRADA</button>
+                            ${userRole === 'admin' ? `
+                                <button onclick="window.deletar('${v.primeiroId}', 'volumes', '${v.descricao}')" style="border:none; background:none; color:var(--danger); cursor:pointer; margin-left:10px;"><i class="fas fa-times"></i></button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    });
+}
+
+// --- FUNÇÕES DE MOVIMENTAÇÃO E CADASTRO ---
+
+window.modalNovoProduto = () => {
+    let opts = '<option value="">Escolha um fornecedor...</option>';
+    Object.entries(fornecedoresCache).forEach(([id, nome]) => opts += `<option value="${id}">${nome}</option>`);
+
+    abrirModalMaster("Novo Produto", `
+        <label>Fornecedor:</label><select id="mForn">${opts}</select>
+        <label>Código Master:</label><input type="text" id="mCod">
+        <label>Nome do Produto:</label><input type="text" id="mNome">
+    `, async () => {
+        const f = document.getElementById("mForn").value;
+        const n = document.getElementById("mNome").value.toUpperCase();
+        const c = document.getElementById("mCod").value;
+        if(!f || !n) return alert("Preencha Fornecedor e Nome!");
+        await addDoc(collection(db, "produtos"), { fornecedorId: f, nome: n, codigo: c, dataCad: serverTimestamp() });
+        fecharModal(); renderizar();
+    });
+};
+
+window.modalNovoSKU = (pId, pNome) => {
+    abrirModalMaster(`Novo SKU para: ${pNome}`, `
+        <label>Código SKU (Volume):</label><input type="text" id="nSKU">
+        <label>Descrição/Especificação:</label><input type="text" id="nDesc">
+        <label>Qtd Inicial:</label><input type="number" id="nQtd" value="0">
+    `, async () => {
+        const sku = document.getElementById("nSKU").value;
+        const desc = document.getElementById("nDesc").value.toUpperCase();
+        const qtd = parseInt(document.getElementById("nQtd").value);
+        await addDoc(collection(db, "volumes"), {
+            produtoId: pId, codigo: sku, descricao: desc, quantidade: qtd, enderecoId: "", dataAlt: serverTimestamp()
+        });
+        fecharModal(); renderizar();
+    });
+};
+
+window.modalEntrada = (vId, vDesc) => {
+    abrirModalMaster(`Entrada: ${vDesc}`, `
+        <label>Quantidade a adicionar:</label>
+        <input type="number" id="addQtd" value="1" min="1">
+    `, async () => {
+        const qtd = parseInt(document.getElementById("addQtd").value);
+        if(qtd <= 0) return;
+        
+        await updateDoc(doc(db, "volumes", vId), { 
+            quantidade: increment(qtd), 
+            dataAlt: serverTimestamp() 
+        });
+
+        await addDoc(collection(db, "movimentacoes"), {
+            tipo: "Entrada", produto: vDesc, quantidade: qtd, usuario: usernameDB, data: serverTimestamp()
+        });
+
+        fecharModal(); renderizar();
+    });
+};
+
+// --- AUXILIARES DE INTERFACE ---
+
+function abrirModalMaster(titulo, corpo, acao) {
+    document.getElementById("modalTitle").innerText = titulo;
+    document.getElementById("modalBody").innerHTML = corpo;
+    document.getElementById("modalMaster").style.display = "flex";
+    document.getElementById("btnModalConfirm").onclick = acao;
+}
+
+window.fecharModal = () => document.getElementById("modalMaster").style.display = "none";
 
 window.toggleVols = (pId) => {
-    document.querySelectorAll(`.child-${pId}`).forEach(el => el.classList.toggle('active'));
+    const rows = document.querySelectorAll(`.child-${pId}`);
+    const icon = document.querySelector(`tr[data-id="${pId}"] i`);
+    rows.forEach(r => r.classList.toggle('active'));
+    if(icon) icon.className = rows[0]?.classList.contains('active') ? "fas fa-chevron-down" : "fas fa-chevron-right";
 };
 
-window.editarItem = async (id, tabela, valorAtual) => {
-    const novo = prompt("Editar descrição:", valorAtual);
-    if (novo && novo !== valorAtual) {
-        const campo = tabela === 'produtos' ? 'nome' : 'descricao';
-        await updateDoc(doc(db, tabela, id), { [campo]: novo });
-        refresh();
-    }
-};
-
-window.addVolume = async (pId, pNome) => {
-    const d = prompt(`Novo Volume para ${pNome}:`);
-    if(d) {
-        await addDoc(collection(db, "volumes"), { produtoId: pId, descricao: d, quantidade: 0, ultimaMovimentacao: serverTimestamp() });
-        refresh();
-    }
-};
-
-window.deletar = async (id, tabela, descricao) => {
-    if(confirm(`Excluir "${descricao}"?`)){
+window.deletar = async (id, tabela, desc) => {
+    if(userRole !== 'admin') return;
+    if(confirm(`Eliminar permanentemente "${desc}"?`)){
         await deleteDoc(doc(db, tabela, id));
-        refresh();
+        renderizar();
     }
-};
-
-document.getElementById("btnSaveProd").onclick = async () => {
-    const n = document.getElementById("newNome").value;
-    const c = document.getElementById("newCod").value;
-    const f = document.getElementById("selForn").value;
-    if(!n || !f) return alert("Preencha Nome e Fornecedor!");
-    await addDoc(collection(db, "produtos"), { nome: n, codigo: c || "S/C", fornecedorId: f, dataCadastro: serverTimestamp() });
-    location.reload();
 };
 
 window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
